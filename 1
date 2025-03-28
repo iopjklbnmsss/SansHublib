@@ -1,0 +1,329 @@
+local ModernUILibrary = {}
+ModernUILibrary.__index = ModernUILibrary
+
+-- 颜色主题
+local Theme = {
+    Primary = Color3.fromRGB(0, 120, 215),
+    Secondary = Color3.fromRGB(64, 64, 64),
+    Background = Color3.fromRGB(36, 36, 36),
+    Text = Color3.fromRGB(255, 255, 255),
+    Disabled = Color3.fromRGB(100, 100, 100),
+    ToggleOn = Color3.fromRGB(0, 200, 83),
+    ToggleOff = Color3.fromRGB(220, 50, 50),
+    SliderFill = Color3.fromRGB(0, 150, 255)
+}
+
+-- 创建圆角函数
+local function applyCornerRadius(instance, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(radius, 0)
+    corner.Parent = instance
+    return corner
+end
+
+-- 创建填充函数
+local function applyPadding(instance, padding)
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, padding)
+    padding.PaddingRight = UDim.new(0, padding)
+    padding.PaddingTop = UDim.new(0, padding)
+    padding.PaddingBottom = UDim.new(0, padding)
+    padding.Parent = instance
+    return padding
+end
+
+-- 创建文本标签
+local function createLabel(parent, text, size)
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Font = Enum.Font.GothamSemibold
+    label.TextColor3 = Theme.Text
+    label.TextSize = size or 14
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = parent
+    return label
+end
+
+-- 创建主窗口
+function ModernUILibrary:CreateWindow(title)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ModernUILibrary"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 300, 0, 400)
+    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainFrame.BackgroundColor3 = Theme.Background
+    mainFrame.ClipsDescendants = true
+    mainFrame.Parent = screenGui
+
+    applyCornerRadius(mainFrame, 0.1)
+    
+    -- 标题栏
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.BackgroundColor3 = Theme.Secondary
+    titleBar.Parent = mainFrame
+    
+    applyCornerRadius(titleBar, 0.1)
+    
+    local titleLabel = createLabel(titleBar, title, 16)
+    titleLabel.Size = UDim2.new(1, -20, 1, 0)
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    
+    -- 内容区域
+    local contentFrame = Instance.new("ScrollingFrame")
+    contentFrame.Name = "Content"
+    contentFrame.Size = UDim2.new(1, 0, 1, -50)
+    contentFrame.Position = UDim2.new(0, 0, 0, 50)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.ScrollBarThickness = 5
+    contentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    contentFrame.Parent = mainFrame
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 10)
+    layout.Parent = contentFrame
+    
+    applyPadding(contentFrame, 10)
+    
+    -- 拖拽功能
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    local window = {
+        ScreenGui = screenGui,
+        MainFrame = mainFrame,
+        Content = contentFrame
+    }
+    
+    return setmetatable(window, self)
+end
+
+-- 创建 Toggle 组件
+function ModernUILibrary:CreateToggle(options)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Name = "Toggle"
+    toggleFrame.Size = UDim2.new(1, -20, 0, 30)
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = self.Content
+    
+    local label = createLabel(toggleFrame, options.Text or "Toggle", 14)
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    
+    local toggleBackground = Instance.new("Frame")
+    toggleBackground.Name = "ToggleBackground"
+    toggleBackground.Size = UDim2.new(0, 50, 0, 25)
+    toggleBackground.Position = UDim2.new(0.8, 0, 0.5, -12.5)
+    toggleBackground.AnchorPoint = Vector2.new(0.8, 0.5)
+    toggleBackground.BackgroundColor3 = Theme.Secondary
+    toggleBackground.Parent = toggleFrame
+    
+    applyCornerRadius(toggleBackground, 0.5)
+    
+    local toggleButton = Instance.new("Frame")
+    toggleButton.Name = "ToggleButton"
+    toggleButton.Size = UDim2.new(0, 21, 0, 21)
+    toggleButton.Position = UDim2.new(0, 2, 0.5, -10.5)
+    toggleButton.AnchorPoint = Vector2.new(0, 0.5)
+    toggleButton.BackgroundColor3 = Theme.Text
+    toggleButton.Parent = toggleBackground
+    
+    applyCornerRadius(toggleButton, 0.5)
+    
+    local state = options.Default or false
+    
+    local function updateToggle()
+        local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        
+        if state then
+            toggleBackground.BackgroundColor3 = Theme.ToggleOn
+            game:GetService("TweenService"):Create(toggleButton, tweenInfo, {
+                Position = UDim2.new(1, -23, 0.5, -10.5)
+            }):Play()
+        else
+            toggleBackground.BackgroundColor3 = Theme.ToggleOff
+            game:GetService("TweenService"):Create(toggleButton, tweenInfo, {
+                Position = UDim2.new(0, 2, 0.5, -10.5)
+            }):Play()
+        end
+    end
+    
+    updateToggle()
+    
+    toggleBackground.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            state = not state
+            updateToggle()
+            
+            if options.Callback then
+                options.Callback(state)
+            end
+        end
+    end)
+    
+    return {
+        SetState = function(newState)
+            state = newState
+            updateToggle()
+        end,
+        GetState = function()
+            return state
+        end
+    }
+end
+
+-- 创建 Slider 组件
+function ModernUILibrary:CreateSlider(options)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Name = "Slider"
+    sliderFrame.Size = UDim2.new(1, -20, 0, 60)
+    sliderFrame.BackgroundTransparency = 1
+    sliderFrame.Parent = self.Content
+    
+    local label = createLabel(sliderFrame, options.Text or "Slider", 14)
+    label.Size = UDim2.new(1, 0, 0, 20)
+    
+    local valueLabel = createLabel(sliderFrame, tostring(options.Default or options.Min or 0), 12)
+    valueLabel.Size = UDim2.new(1, 0, 0, 15)
+    valueLabel.Position = UDim2.new(0, 0, 0, 20)
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    
+    local sliderBackground = Instance.new("Frame")
+    sliderBackground.Name = "SliderBackground"
+    sliderBackground.Size = UDim2.new(1, 0, 0, 5)
+    sliderBackground.Position = UDim2.new(0, 0, 0, 40)
+    sliderBackground.BackgroundColor3 = Theme.Secondary
+    sliderBackground.Parent = sliderFrame
+    
+    applyCornerRadius(sliderBackground, 1)
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Name = "SliderFill"
+    sliderFill.Size = UDim2.new(0, 0, 1, 0)
+    sliderFill.BackgroundColor3 = Theme.SliderFill
+    sliderFill.Parent = sliderBackground
+    
+    applyCornerRadius(sliderFill, 1)
+    
+    local sliderButton = Instance.new("TextButton")
+    sliderButton.Name = "SliderButton"
+    sliderButton.Size = UDim2.new(0, 15, 0, 15)
+    sliderButton.Position = UDim2.new(0, 0, 0.5, -7.5)
+    sliderButton.AnchorPoint = Vector2.new(0, 0.5)
+    sliderButton.BackgroundColor3 = Theme.Text
+    sliderButton.Text = ""
+    sliderButton.AutoButtonColor = false
+    sliderButton.Parent = sliderBackground
+    
+    applyCornerRadius(sliderButton, 1)
+    
+    local min = options.Min or 0
+    local max = options.Max or 100
+    local step = options.Step or 1
+    local value = math.clamp(options.Default or min, min, max)
+    
+    local function updateSlider(newValue, isDragging)
+        newValue = math.clamp(newValue, min, max)
+        if step > 0 then
+            newValue = math.floor(newValue / step + 0.5) * step
+        end
+        
+        if value ~= newValue or isDragging then
+            value = newValue
+            local percentage = (value - min) / (max - min)
+            
+            sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+            sliderButton.Position = UDim2.new(percentage, 0, 0.5, -7.5)
+            valueLabel.Text = string.format("%.2f", value)
+            
+            if options.Callback and not isDragging then
+                options.Callback(value)
+            end
+        end
+    end
+    
+    updateSlider(value)
+    
+    local dragging = false
+    
+    sliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if dragging and options.Callback then
+                options.Callback(value)
+            end
+            dragging = false
+        end
+    end)
+    
+    sliderBackground.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local xOffset = input.Position.X - sliderBackground.AbsolutePosition.X
+            local percentage = math.clamp(xOffset / sliderBackground.AbsoluteSize.X, 0, 1)
+            local newValue = min + (max - min) * percentage
+            updateSlider(newValue)
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local xOffset = input.Position.X - sliderBackground.AbsolutePosition.X
+            local percentage = math.clamp(xOffset / sliderBackground.AbsoluteSize.X, 0, 1)
+            local newValue = min + (max - min) * percentage
+            updateSlider(newValue, true)
+        end
+    end)
+    
+    return {
+        SetValue = function(newValue)
+            updateSlider(newValue)
+        end,
+        GetValue = function()
+            return value
+        end
+    }
+end
+
+return ModernUILibrary
