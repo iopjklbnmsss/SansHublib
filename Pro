@@ -1,0 +1,1087 @@
+-- SansHub UI Library v1.0
+
+
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+
+local SansHubUI = {}
+SansHubUI.__index = SansHubUI
+
+-- 颜色预设
+local Colors = {
+    Background = Color3.fromRGB(30, 30, 40),
+    Header = Color3.fromRGB(25, 25, 35),
+    Text = Color3.fromRGB(240, 240, 240),
+    Accent = Color3.fromRGB(100, 150, 255),
+    Section = Color3.fromRGB(40, 40, 50),
+    Button = Color3.fromRGB(60, 60, 75),
+    ToggleOn = Color3.fromRGB(100, 200, 100),
+    ToggleOff = Color3.fromRGB(200, 100, 100),
+    Slider = Color3.fromRGB(100, 150, 255),
+    Dropdown = Color3.fromRGB(50, 50, 65),
+    TextBox = Color3.fromRGB(45, 45, 55)
+}
+
+-- 动画预设
+local Animations = {
+    Speed = 0.15,
+    Ease = Enum.EasingStyle.Quad,
+    Direction = Enum.EasingDirection.Out
+}
+
+-- 创建基础元素函数
+local function Create(class, props)
+    local instance = Instance.new(class)
+    for prop, value in pairs(props) do
+        if prop ~= "Parent" then
+            if pcall(function() return instance[prop] end) then
+                instance[prop] = value
+            end
+        end
+    end
+    if props.Parent then
+        instance.Parent = props.Parent
+    end
+    return instance
+end
+
+-- 创建圆角
+local function ApplyCornerRadius(instance, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(radius, 0)
+    corner.Parent = instance
+    return corner
+end
+
+-- 创建填充
+local function ApplyPadding(instance, padding)
+    local pad = Instance.new("UIPadding")
+    pad.PaddingLeft = UDim.new(0, padding)
+    pad.PaddingRight = UDim.new(0, padding)
+    pad.PaddingTop = UDim.new(0, padding)
+    pad.PaddingBottom = UDim.new(0, padding)
+    pad.Parent = instance
+    return pad
+end
+
+-- 创建描边
+local function ApplyStroke(instance, color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color
+    stroke.Thickness = thickness
+    stroke.Parent = instance
+    return stroke
+end
+
+-- 创建文本标签
+local function CreateLabel(text, parent)
+    local label = Create("TextLabel", {
+        Parent = parent,
+        Text = text,
+        TextColor3 = Colors.Text,
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    return label
+end
+
+-- 创建按钮效果
+local function AddButtonEffect(button)
+    local originalSize = button.Size
+    local originalPos = button.Position
+    
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            BackgroundColor3 = button.BackgroundColor3:Lerp(Color3.new(1, 1, 1), 0.1)
+        }):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            BackgroundColor3 = Colors.Button
+        }):Play()
+    end)
+    
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(button, TweenInfo.new(Animations.Speed/2, Animations.Ease, Animations.Direction), {
+                BackgroundColor3 = button.BackgroundColor3:Lerp(Color3.new(0, 0, 0), 0.2),
+                Size = originalSize * UDim2.new(1, -2, 1, -2),
+                Position = originalPos + UDim2.new(0, 1, 0, 1)
+            }):Play()
+        end
+    end)
+    
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(button, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+                BackgroundColor3 = button.BackgroundColor3:Lerp(Color3.new(1, 1, 1), 0.1),
+                Size = originalSize,
+                Position = originalPos
+            }):Play()
+        end
+    end)
+end
+
+-- 创建拖动功能
+local function MakeDraggable(frame, handle)
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    local function Update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            Update(input)
+        end
+    end)
+end
+
+-- 创建UI主窗口
+function SansHubUI.new(title)
+    local self = setmetatable({}, SansHubUI)
+    
+    -- 主屏幕GUI
+    self.ScreenGui = Create("ScreenGui", {
+        ResetOnSpawn = false,
+        IgnoreGuiInset = true,
+        DisplayOrder = 999
+    })
+    
+    -- 主容器
+    self.MainFrame = Create("Frame", {
+        Parent = self.ScreenGui,
+        Size = UDim2.new(0, 300, 0, 400),
+        Position = UDim2.new(0.5, -150, 0.5, -200),
+        BackgroundColor3 = Colors.Background,
+        ClipsDescendants = true
+    })
+    
+    ApplyCornerRadius(self.MainFrame, 0.1)
+    ApplyStroke(self.MainFrame, Colors.Accent, 1)
+    
+    -- 标题栏
+    self.Header = Create("Frame", {
+        Parent = self.MainFrame,
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundColor3 = Colors.Header
+    })
+    
+    ApplyCornerRadius(self.Header, 0.1, {TopLeft = true, TopRight = true})
+    
+    -- 标题文本
+    self.Title = Create("TextLabel", {
+        Parent = self.Header,
+        Text = title or "SansHub",
+        TextColor3 = Colors.Text,
+        TextSize = 16,
+        Font = Enum.Font.GothamSemibold,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.6, 0, 1, 0),
+        Position = UDim2.new(0.2, 0, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Center
+    })
+    
+    -- 标题按钮容器
+    self.HeaderButtons = Create("Frame", {
+        Parent = self.Header,
+        Size = UDim2.new(0.6, 0, 1, 0),
+        Position = UDim2.new(0.4, 0, 0, 0),
+        BackgroundTransparency = 1
+    })
+    
+    -- 配置按钮
+    self.ConfigButton = Create("TextButton", {
+        Parent = self.HeaderButtons,
+        Size = UDim2.new(0.33, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        Text = "⚙️",
+        TextSize = 16,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1
+    })
+    
+    -- 隐藏按钮
+    self.HideButton = Create("TextButton", {
+        Parent = self.HeaderButtons,
+        Size = UDim2.new(0.33, 0, 1, 0),
+        Position = UDim2.new(0.33, 0, 0, 0),
+        Text = "🗕",
+        TextSize = 16,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1
+    })
+    
+    -- 关闭按钮
+    self.CloseButton = Create("TextButton", {
+        Parent = self.HeaderButtons,
+        Size = UDim2.new(0.33, 0, 1, 0),
+        Position = UDim2.new(0.66, 0, 0, 0),
+        Text = "✕",
+        TextSize = 16,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1
+    })
+    
+    -- 内容容器
+    self.Content = Create("ScrollingFrame", {
+        Parent = self.MainFrame,
+        Size = UDim2.new(1, 0, 1, -30),
+        Position = UDim2.new(0, 0, 0, 30),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 5,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y
+    })
+    
+    -- 配置页面 (初始隐藏)
+    self.ConfigPage = Create("Frame", {
+        Parent = self.MainFrame,
+        Size = UDim2.new(1, 0, 1, -30),
+        Position = UDim2.new(1, 0, 0, 30),
+        BackgroundColor3 = Colors.Background,
+        Visible = false
+    })
+    
+    -- 配置页面内容
+    local configContent = Create("ScrollingFrame", {
+        Parent = self.ConfigPage,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 5,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y
+    })
+    
+    -- 配置码输入框
+    local configInput = Create("TextBox", {
+        Parent = configContent,
+        Size = UDim2.new(1, -20, 0, 30),
+        Position = UDim2.new(0, 10, 0, 10),
+        BackgroundColor3 = Colors.TextBox,
+        TextColor3 = Colors.Text,
+        PlaceholderText = "输入配置码...",
+        Text = "",
+        Font = Enum.Font.Gotham,
+        TextSize = 14
+    })
+    
+    ApplyCornerRadius(configInput, 0.1)
+    ApplyStroke(configInput, Colors.Accent, 1)
+    
+    -- 使用配置码按钮
+    local useConfigButton = Create("TextButton", {
+        Parent = configContent,
+        Size = UDim2.new(1, -20, 0, 30),
+        Position = UDim2.new(0, 10, 0, 50),
+        BackgroundColor3 = Colors.Button,
+        TextColor3 = Colors.Text,
+        Text = "使用配置码",
+        Font = Enum.Font.Gotham,
+        TextSize = 14
+    })
+    
+    ApplyCornerRadius(useConfigButton, 0.1)
+    ApplyStroke(useConfigButton, Colors.Accent, 1)
+    AddButtonEffect(useConfigButton)
+    
+    -- 复制配置码按钮
+    local copyConfigButton = Create("TextButton", {
+        Parent = configContent,
+        Size = UDim2.new(1, -20, 0, 30),
+        Position = UDim2.new(0, 10, 0, 90),
+        BackgroundColor3 = Colors.Button,
+        TextColor3 = Colors.Text,
+        Text = "复制配置码",
+        Font = Enum.Font.Gotham,
+        TextSize = 14
+    })
+    
+    ApplyCornerRadius(copyConfigButton, 0.1)
+    ApplyStroke(copyConfigButton, Colors.Accent, 1)
+    AddButtonEffect(copyConfigButton)
+    
+    -- 隐藏时的迷你图标
+    self.MinimizedIcon = Create("ImageLabel", {
+        Parent = self.ScreenGui,
+        Size = UDim2.new(0, 40, 0, 40),
+        Position = UDim2.new(0, 10, 0.5, -20),
+        BackgroundColor3 = Colors.Header,
+        Image = "http://www.roblox.com/asset/?id=1208931506", -- 替换为实际QQ头像URL
+        Visible = false
+    })
+    
+    ApplyCornerRadius(self.MinimizedIcon, 0.2)
+    ApplyStroke(self.MinimizedIcon, Colors.Accent, 1)
+    
+    -- 按钮事件
+    self.ConfigButton.MouseButton1Click:Connect(function()
+        self:ToggleConfigPage()
+    end)
+    
+    self.HideButton.MouseButton1Click:Connect(function()
+        self:ToggleMinimize()
+    end)
+    
+    self.CloseButton.MouseButton1Click:Connect(function()
+        self:Destroy()
+    end)
+    
+    -- 拖动功能
+    MakeDraggable(self.MainFrame, self.Header)
+    MakeDraggable(self.MinimizedIcon, self.MinimizedIcon)
+    
+    -- 存储所有组件
+    self.Elements = {}
+    self.Toggles = {}
+    self.Sliders = {}
+    self.Buttons = {}
+    self.Dropdowns = {}
+    self.TextBoxes = {}
+    
+    return self
+end
+
+-- 切换配置页面
+function SansHubUI:ToggleConfigPage()
+    if self.ConfigPage.Visible then
+        -- 隐藏配置页
+        TweenService:Create(self.ConfigPage, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            Position = UDim2.new(1, 0, 0, 30)
+        }):Play()
+        wait(Animations.Speed)
+        self.ConfigPage.Visible = false
+    else
+        -- 显示配置页
+        self.ConfigPage.Visible = true
+        TweenService:Create(self.ConfigPage, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            Position = UDim2.new(0, 0, 0, 30)
+        }):Play()
+    end
+end
+
+-- 切换最小化
+function SansHubUI:ToggleMinimize()
+    if self.MainFrame.Visible then
+        -- 最小化
+        TweenService:Create(self.MainFrame, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = self.MainFrame.Position + UDim2.new(0, 150, 0, 200)
+        }):Play()
+        wait(Animations.Speed)
+        self.MainFrame.Visible = false
+        self.MinimizedIcon.Visible = true
+    else
+        -- 恢复
+        self.MainFrame.Visible = true
+        self.MinimizedIcon.Visible = false
+        TweenService:Create(self.MainFrame, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            Size = UDim2.new(0, 300, 0, 400),
+            Position = UDim2.new(0.5, -150, 0.5, -200)
+        }):Play()
+    end
+end
+
+-- 添加分区
+function SansHubUI:AddSection(title)
+    local section = {}
+    
+    -- 分区框架
+    local frame = Create("Frame", {
+        Parent = self.Content,
+        Size = UDim2.new(1, -20, 0, 0),
+        Position = UDim2.new(0, 10, 0, #self.Elements * 40 + 10),
+        BackgroundColor3 = Colors.Section,
+        AutomaticSize = Enum.AutomaticSize.Y
+    })
+    
+    ApplyCornerRadius(frame, 0.1)
+    ApplyStroke(frame, Colors.Accent, 1)
+    ApplyPadding(frame, 10)
+    
+    -- 分区标题
+    local label = Create("TextLabel", {
+        Parent = frame,
+        Text = title or "Section",
+        TextColor3 = Colors.Text,
+        TextSize = 16,
+        Font = Enum.Font.GothamSemibold,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    -- 分区内容
+    local content = Create("Frame", {
+        Parent = frame,
+        Size = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(0, 0, 0, 25),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y
+    })
+    
+    local layout = Create("UIListLayout", {
+        Parent = content,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5)
+    })
+    
+    -- 更新分区大小
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        frame.Size = UDim2.new(1, -20, 0, layout.AbsoluteContentSize.Y + 35)
+    end)
+    
+    section.Frame = frame
+    section.Content = content
+    section.Elements = {}
+    
+    table.insert(self.Elements, section)
+    return section
+end
+
+-- 添加按钮
+function SansHubUI:AddButton(section, text, callback)
+    local button = Create("TextButton", {
+        Parent = section.Content,
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundColor3 = Colors.Button,
+        TextColor3 = Colors.Text,
+        Text = text,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        AutoButtonColor = false
+    })
+    
+    ApplyCornerRadius(button, 0.1)
+    ApplyStroke(button, Colors.Accent, 1)
+    AddButtonEffect(button)
+    
+    button.MouseButton1Click:Connect(function()
+        if callback then
+            callback()
+        end
+    end)
+    
+    table.insert(section.Elements, button)
+    table.insert(self.Buttons, {Button = button, Callback = callback})
+    return button
+end
+
+-- 添加开关
+function SansHubUI:AddToggle(section, text, default, callback, colorCallback)
+    local toggle = {}
+    local state = default or false
+    
+    -- 开关容器
+    local frame = Create("Frame", {
+        Parent = section.Content,
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1
+    })
+    
+    -- 开关标签
+    local label = Create("TextLabel", {
+        Parent = frame,
+        Text = text,
+        TextColor3 = Colors.Text,
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.7, 0, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    -- 开关背景
+    local background = Create("Frame", {
+        Parent = frame,
+        Size = UDim2.new(0, 50, 0, 25),
+        Position = UDim2.new(0.7, 0, 0.5, -12.5),
+        BackgroundColor3 = state and Colors.ToggleOn or Colors.ToggleOff
+    })
+    
+    ApplyCornerRadius(background, 0.5)
+    ApplyStroke(background, Colors.Accent, 1)
+    
+    -- 开关按钮
+    local button = Create("Frame", {
+        Parent = background,
+        Size = UDim2.new(0, 21, 0, 21),
+        Position = state and UDim2.new(1, -23, 0.5, -10.5) or UDim2.new(0, 2, 0.5, -10.5),
+        BackgroundColor3 = Colors.Text,
+        AnchorPoint = Vector2.new(0, 0.5)
+    })
+    
+    ApplyCornerRadius(button, 0.5)
+    
+    -- 颜色方块 (可选)
+    local colorBox = Create("Frame", {
+        Parent = frame,
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new(0.85, 0, 0.5, -10),
+        BackgroundColor3 = Colors.Accent,
+        Visible = false
+    })
+    
+    ApplyCornerRadius(colorBox, 0.2)
+    ApplyStroke(colorBox, Colors.Text, 1)
+    
+    -- 切换状态函数
+    local function ToggleState(newState)
+        state = newState ~= nil and newState or not state
+        TweenService:Create(background, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            BackgroundColor3 = state and Colors.ToggleOn or Colors.ToggleOff
+        }):Play()
+        
+        TweenService:Create(button, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            Position = state and UDim2.new(1, -23, 0.5, -10.5) or UDim2.new(0, 2, 0.5, -10.5)
+        }):Play()
+        
+        if callback then
+            callback(state)
+        end
+    end
+    
+    -- 点击事件
+    background.MouseButton1Click:Connect(function()
+        ToggleState()
+    end)
+    
+    -- 颜色方块点击事件
+    colorBox.MouseButton1Click:Connect(function()
+        if colorCallback then
+            colorCallback(colorBox.BackgroundColor3, function(newColor)
+                colorBox.BackgroundColor3 = newColor
+            end)
+        end
+    end)
+    
+    -- 设置颜色方块可见性
+    function toggle:SetColorEnabled(enabled)
+        colorBox.Visible = enabled
+        label.Size = enabled and UDim2.new(0.6, 0, 1, 0) or UDim2.new(0.7, 0, 1, 0)
+    end
+    
+    -- 设置颜色
+    function toggle:SetColor(color)
+        colorBox.BackgroundColor3 = color
+    end
+    
+    -- 获取状态
+    function toggle:GetState()
+        return state
+    end
+    
+    -- 设置状态
+    function toggle:SetState(newState)
+        ToggleState(newState)
+    end
+    
+    table.insert(section.Elements, frame)
+    table.insert(self.Toggles, toggle)
+    return toggle
+end
+
+-- 添加滑动条
+function SansHubUI:AddSlider(section, text, min, max, default, callback)
+    local slider = {}
+    local value = default or min
+    
+    -- 滑动条容器
+    local frame = Create("Frame", {
+        Parent = section.Content,
+        Size = UDim2.new(1, 0, 0, 50),
+        BackgroundTransparency = 1
+    })
+    
+    -- 滑动条标签
+    local label = Create("TextLabel", {
+        Parent = frame,
+        Text = text,
+        TextColor3 = Colors.Text,
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    -- 滑动条背景
+    local track = Create("Frame", {
+        Parent = frame,
+        Size = UDim2.new(1, 0, 0, 5),
+        Position = UDim2.new(0, 0, 0, 25),
+        BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+    })
+    
+    ApplyCornerRadius(track, 0.5)
+    
+    -- 滑动条填充
+    local fill = Create("Frame", {
+        Parent = track,
+        Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
+        BackgroundColor3 = Colors.Slider
+    })
+    
+    ApplyCornerRadius(fill, 0.5)
+    
+    -- 滑动条按钮
+    local button = Create("Frame", {
+        Parent = track,
+        Size = UDim2.new(0, 15, 0, 15),
+        Position = UDim2.new((value - min) / (max - min), -7.5, 0.5, -7.5),
+        BackgroundColor3 = Colors.Text,
+        AnchorPoint = Vector2.new(0.5, 0.5)
+    })
+    
+    ApplyCornerRadius(button, 0.5)
+    ApplyStroke(button, Colors.Accent, 1)
+    
+    -- 值显示
+    local valueLabel = Create("TextLabel", {
+        Parent = frame,
+        Text = tostring(value),
+        TextColor3 = Colors.Text,
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0, 35),
+        TextXAlignment = Enum.TextXAlignment.Right
+    })
+    
+    -- 拖动逻辑
+    local dragging = false
+    
+    local function UpdateSlider(input)
+        local relativeX = (input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
+        relativeX = math.clamp(relativeX, 0, 1)
+        value = math.floor(min + (max - min) * relativeX)
+        
+        fill.Size = UDim2.new(relativeX, 0, 1, 0)
+        button.Position = UDim2.new(relativeX, -7.5, 0.5, -7.5)
+        valueLabel.Text = tostring(value)
+        
+        if callback then
+            callback(value)
+        end
+    end
+    
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+        end
+    end)
+    
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            UpdateSlider(input)
+        end
+    end)
+    
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            UpdateSlider(input)
+            dragging = true
+        end
+    end)
+    
+    -- 设置值
+    function slider:SetValue(newValue)
+        value = math.clamp(newValue, min, max)
+        local relativeX = (value - min) / (max - min)
+        
+        fill.Size = UDim2.new(relativeX, 0, 1, 0)
+        button.Position = UDim2.new(relativeX, -7.5, 0.5, -7.5)
+        valueLabel.Text = tostring(value)
+        
+        if callback then
+            callback(value)
+        end
+    end
+    
+    -- 获取值
+    function slider:GetValue()
+        return value
+    end
+    
+    table.insert(section.Elements, frame)
+    table.insert(self.Sliders, slider)
+    return slider
+end
+
+-- 添加下拉菜单
+function SansHubUI:AddDropdown(section, text, options, default, callback)
+    local dropdown = {}
+    local isOpen = false
+    local selected = default or options[1]
+    
+    -- 下拉菜单容器
+    local frame = Create("Frame", {
+        Parent = section.Content,
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1
+    })
+    
+    -- 下拉菜单标签
+    local label = Create("TextLabel", {
+        Parent = frame,
+        Text = text,
+        TextColor3 = Colors.Text,
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.5, 0, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    -- 下拉菜单按钮
+    local button = Create("TextButton", {
+        Parent = frame,
+        Size = UDim2.new(0.5, 0, 1, 0),
+        Position = UDim2.new(0.5, 0, 0, 0),
+        BackgroundColor3 = Colors.Dropdown,
+        TextColor3 = Colors.Text,
+        Text = selected,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        AutoButtonColor = false
+    })
+    
+    ApplyCornerRadius(button, 0.1)
+    ApplyStroke(button, Colors.Accent, 1)
+    AddButtonEffect(button)
+    
+    -- 下拉菜单选项容器
+    local optionsFrame = Create("Frame", {
+        Parent = frame,
+        Size = UDim2.new(0.5, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 1, 5),
+        BackgroundColor3 = Colors.Dropdown,
+        Visible = false,
+        ClipsDescendants = true
+    })
+    
+    ApplyCornerRadius(optionsFrame, 0.1)
+    ApplyStroke(optionsFrame, Colors.Accent, 1)
+    
+    local optionsLayout = Create("UIListLayout", {
+        Parent = optionsFrame,
+        SortOrder = Enum.SortOrder.LayoutOrder
+    })
+    
+    -- 创建选项按钮
+    local function CreateOptions()
+        for _, option in ipairs(options) do
+            local optionButton = Create("TextButton", {
+                Parent = optionsFrame,
+                Size = UDim2.new(1, 0, 0, 30),
+                BackgroundColor3 = Colors.Dropdown,
+                TextColor3 = Colors.Text,
+                Text = option,
+                Font = Enum.Font.Gotham,
+                TextSize = 14,
+                AutoButtonColor = false
+            })
+            
+            optionButton.MouseButton1Click:Connect(function()
+                selected = option
+                button.Text = option
+                ToggleDropdown()
+                
+                if callback then
+                    callback(option)
+                end
+            end)
+            
+            optionButton.MouseEnter:Connect(function()
+                TweenService:Create(optionButton, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+                    BackgroundColor3 = optionButton.BackgroundColor3:Lerp(Color3.new(1, 1, 1), 0.1)
+                }):Play()
+            end)
+            
+            optionButton.MouseLeave:Connect(function()
+                TweenService:Create(optionButton, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+                    BackgroundColor3 = Colors.Dropdown
+                }):Play()
+            end)
+        end
+    end
+    
+    -- 切换下拉菜单
+    local function ToggleDropdown()
+        isOpen = not isOpen
+        
+        if isOpen then
+            optionsFrame.Visible = true
+            optionsFrame.Size = UDim2.new(0.5, 0, 0, #options * 30)
+        else
+            optionsFrame.Size = UDim2.new(0.5, 0, 0, 0)
+            wait(Animations.Speed)
+            optionsFrame.Visible = false
+        end
+    end
+    
+    -- 初始化选项
+    CreateOptions()
+    
+    -- 按钮点击事件
+    button.MouseButton1Click:Connect(ToggleDropdown)
+    
+    -- 设置选项
+    function dropdown:SetOptions(newOptions)
+        options = newOptions
+        selected = options[1] or ""
+        button.Text = selected
+        
+        -- 清除旧选项
+        for _, child in ipairs(optionsFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+        
+        -- 创建新选项
+        CreateOptions()
+    end
+    
+    -- 设置选中项
+    function dropdown:SetSelected(option)
+        if table.find(options, option) then
+            selected = option
+            button.Text = option
+            
+            if callback then
+                callback(option)
+            end
+        end
+    end
+    
+    -- 获取选中项
+    function dropdown:GetSelected()
+        return selected
+    end
+    
+    table.insert(section.Elements, frame)
+    table.insert(self.Dropdowns, dropdown)
+    return dropdown
+end
+
+-- 添加文本框
+function SansHubUI:AddTextBox(section, text, placeholder, default, callback)
+    local textbox = {}
+    
+    -- 文本框容器
+    local frame = Create("Frame", {
+        Parent = section.Content,
+        Size = UDim2.new(1, 0, 0, 50),
+        BackgroundTransparency = 1
+    })
+    
+    -- 文本框标签
+    local label = Create("TextLabel", {
+        Parent = frame,
+        Text = text,
+        TextColor3 = Colors.Text,
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    -- 文本框输入
+    local input = Create("TextBox", {
+        Parent = frame,
+        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.new(0, 0, 0, 25),
+        BackgroundColor3 = Colors.TextBox,
+        TextColor3 = Colors.Text,
+        PlaceholderText = placeholder or "",
+        Text = default or "",
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        ClearTextOnFocus = false
+    })
+    
+    ApplyCornerRadius(input, 0.1)
+    ApplyStroke(input, Colors.Accent, 1)
+    
+    -- 焦点事件
+    input.Focused:Connect(function()
+        TweenService:Create(input, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            BackgroundColor3 = input.BackgroundColor3:Lerp(Color3.new(1, 1, 1), 0.1)
+        }):Play()
+    end)
+    
+    input.FocusLost:Connect(function()
+        TweenService:Create(input, TweenInfo.new(Animations.Speed, Animations.Ease, Animations.Direction), {
+            BackgroundColor3 = Colors.TextBox
+        }):Play()
+        
+        if callback then
+            callback(input.Text)
+        end
+    end)
+    
+    -- 设置文本
+    function textbox:SetText(newText)
+        input.Text = newText
+    end
+    
+    -- 获取文本
+    function textbox:GetText()
+        return input.Text
+    end
+    
+    table.insert(section.Elements, frame)
+    table.insert(self.TextBoxes, textbox)
+    return textbox
+end
+
+-- 添加标签
+function SansHubUI:AddLabel(section, text)
+    local label = CreateLabel(text, section.Content)
+    table.insert(section.Elements, label)
+    return label
+end
+
+-- 生成配置码
+function SansHubUI:GenerateConfigCode()
+    local config = {
+        Version = "SansHub_1.0",
+        Random = string.sub(HttpService:GenerateGUID(false), 1, 5),
+        Toggles = {},
+        Sliders = {},
+        Dropdowns = {},
+        TextBoxes = {}
+    }
+    
+    -- 收集开关状态
+    for i, toggle in ipairs(self.Toggles) do
+        table.insert(config.Toggles, {
+            State = toggle:GetState(),
+            ColorEnabled = false, -- 需要扩展Toggle类来存储这个状态
+            Color = Color3.new(1, 1, 1) -- 默认颜色
+        })
+    end
+    
+    -- 收集滑动条值
+    for i, slider in ipairs(self.Sliders) do
+        table.insert(config.Sliders, slider:GetValue())
+    end
+    
+    -- 收集下拉菜单选中项
+    for i, dropdown in ipairs(self.Dropdowns) do
+        table.insert(config.Dropdowns, dropdown:GetSelected())
+    end
+    
+    -- 收集文本框内容
+    for i, textbox in ipairs(self.TextBoxes) do
+        table.insert(config.TextBoxes, textbox:GetText())
+    end
+    
+    -- 转换为JSON并Base64编码
+    local json = HttpService:JSONEncode(config)
+    local base64 = game:GetService("HttpService"):JSONEncode(json) -- 简单"编码"
+    
+    return "SansHub_" .. config.Random .. "_" .. base64
+end
+
+-- 应用配置码
+function SansHubUI:ApplyConfigCode(code)
+    -- 验证配置码格式
+    if not string.match(code, "^SansHub_%w+_") then
+        return false, "无效的配置码格式"
+    end
+    
+    -- 提取并解码
+    local base64 = string.sub(code, string.find(code, "_", string.find(code, "_") + 1)
+    local success, json = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(base64)
+    end)
+    
+    if not success then
+        return false, "配置码解码失败"
+    end
+    
+    local success, config = pcall(function()
+        return HttpService:JSONDecode(json)
+    end)
+    
+    if not success then
+        return false, "配置解析失败"
+    end
+    
+    -- 应用配置
+    for i, toggleConfig in ipairs(config.Toggles or {}) do
+        if self.Toggles[i] then
+            self.Toggles[i]:SetState(toggleConfig.State)
+            if toggleConfig.ColorEnabled then
+                self.Toggles[i]:SetColorEnabled(true)
+                self.Toggles[i]:SetColor(toggleConfig.Color)
+            end
+        end
+    end
+    
+    for i, value in ipairs(config.Sliders or {}) do
+        if self.Sliders[i] then
+            self.Sliders[i]:SetValue(value)
+        end
+    end
+    
+    for i, selected in ipairs(config.Dropdowns or {}) do
+        if self.Dropdowns[i] then
+            self.Dropdowns[i]:SetSelected(selected)
+        end
+    end
+    
+    for i, text in ipairs(config.TextBoxes or {}) do
+        if self.TextBoxes[i] then
+            self.TextBoxes[i]:SetText(text)
+        end
+    end
+    
+    return true
+end
+
+-- 销毁UI
+function SansHubUI:Destroy()
+    self.ScreenGui:Destroy()
+    setmetatable(self, nil)
+end
+
+return SansHubUI
