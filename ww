@@ -1,0 +1,3023 @@
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+
+local SansHub = {}
+
+-- 颜色主题配置
+SansHub.COLOR_PALETTE = {
+    normal = {
+        Background = Color3.fromRGB(15, 15, 30),
+        Stroke = Color3.fromRGB(50, 70, 120),
+        Title = Color3.fromRGB(170, 210, 255),
+        Content = Color3.fromRGB(180, 180, 220),
+        Progress = {Color3.fromRGB(80, 110, 180), Color3.fromRGB(120, 150, 220)},
+        Button = {
+            Background = Color3.fromRGB(40, 60, 100),
+            Text = Color3.fromRGB(200, 220, 255),
+            Highlight = Color3.fromRGB(70, 90, 140)
+        },
+        Toggle = {
+            On = Color3.fromRGB(80, 160, 255),
+            Off = Color3.fromRGB(60, 60, 90),
+            Knob = Color3.fromRGB(220, 220, 255)
+        },
+        Slider = {
+            Track = Color3.fromRGB(40, 60, 100),
+            Fill = Color3.fromRGB(80, 110, 180),
+            Thumb = Color3.fromRGB(170, 210, 255)
+        },
+        Input = {
+            Background = Color3.fromRGB(25, 25, 45),
+            Placeholder = Color3.fromRGB(100, 100, 130),
+            Text = Color3.fromRGB(200, 220, 255),
+            Stroke = Color3.fromRGB(60, 80, 130)
+        },
+        Dropdown = {
+            Background = Color3.fromRGB(25, 25, 45),
+            Item = Color3.fromRGB(35, 35, 60),
+            Text = Color3.fromRGB(200, 220, 255),
+            Highlight = Color3.fromRGB(60, 80, 130)
+        },
+        ExpandList = {
+            Background = Color3.fromRGB(20, 20, 40),
+            Header = Color3.fromRGB(30, 30, 60),
+            Item = Color3.fromRGB(25, 25, 45)
+        }
+    },
+    red = {
+        Background = Color3.fromRGB(30, 15, 15),
+        Stroke = Color3.fromRGB(120, 50, 50),
+        Title = Color3.fromRGB(255, 170, 170),
+        Content = Color3.fromRGB(220, 180, 180),
+        Progress = {Color3.fromRGB(180, 80, 80), Color3.fromRGB(220, 120, 120)},
+        Button = {
+            Background = Color3.fromRGB(100, 40, 40),
+            Text = Color3.fromRGB(255, 200, 200),
+            Highlight = Color3.fromRGB(140, 70, 70)
+        },
+        Toggle = {
+            On = Color3.fromRGB(255, 100, 100),
+            Off = Color3.fromRGB(90, 60, 60),
+            Knob = Color3.fromRGB(255, 220, 220)
+        },
+        Slider = {
+            Track = Color3.fromRGB(100, 40, 40),
+            Fill = Color3.fromRGB(180, 80, 80),
+            Thumb = Color3.fromRGB(255, 170, 170)
+        },
+        Input = {
+            Background = Color3.fromRGB(45, 25, 25),
+            Placeholder = Color3.fromRGB(130, 100, 100),
+            Text = Color3.fromRGB(255, 200, 200),
+            Stroke = Color3.fromRGB(130, 60, 60)
+        },
+        Dropdown = {
+            Background = Color3.fromRGB(45, 25, 25),
+            Item = Color3.fromRGB(60, 35, 35),
+            Text = Color3.fromRGB(255, 200, 200),
+            Highlight = Color3.fromRGB(130, 60, 60)
+        },
+        ExpandList = {
+            Background = Color3.fromRGB(40, 15, 15),
+            Header = Color3.fromRGB(60, 30, 30),
+            Item = Color3.fromRGB(45, 25, 25)
+        }
+    },
+    blue = {
+        Background = Color3.fromRGB(15, 15, 30),
+        Stroke = Color3.fromRGB(50, 70, 120),
+        Title = Color3.fromRGB(170, 210, 255),
+        Content = Color3.fromRGB(180, 180, 220),
+        Progress = {Color3.fromRGB(80, 110, 180), Color3.fromRGB(120, 150, 220)},
+        Button = {
+            Background = Color3.fromRGB(40, 60, 100),
+            Text = Color3.fromRGB(200, 220, 255),
+            Highlight = Color3.fromRGB(70, 90, 140)
+        },
+        Toggle = {
+            On = Color3.fromRGB(80, 160, 255),
+            Off = Color3.fromRGB(60, 60, 90),
+            Knob = Color3.fromRGB(220, 220, 255)
+        },
+        Slider = {
+            Track = Color3.fromRGB(40, 60, 100),
+            Fill = Color3.fromRGB(80, 110, 180),
+            Thumb = Color3.fromRGB(170, 210, 255)
+        },
+        Input = {
+            Background = Color3.fromRGB(25, 25, 45),
+            Placeholder = Color3.fromRGB(100, 100, 130),
+            Text = Color3.fromRGB(200, 220, 255),
+            Stroke = Color3.fromRGB(60, 80, 130)
+        },
+        Dropdown = {
+            Background = Color3.fromRGB(25, 25, 45),
+            Item = Color3.fromRGB(35, 35, 60),
+            Text = Color3.fromRGB(200, 220, 255),
+            Highlight = Color3.fromRGB(60, 80, 130)
+        },
+        ExpandList = {
+            Background = Color3.fromRGB(20, 20, 40),
+            Header = Color3.fromRGB(30, 30, 60),
+            Item = Color3.fromRGB(25, 25, 45)
+        }
+    }
+}
+
+-- 通知系统
+local notifications = {}
+local NOTIFICATION_SPACING = 8
+local BASE_Y_OFFSET = 70
+
+local function updateNotificationPositions()
+    local baseY = 0
+    local screenHeight = workspace.CurrentCamera.ViewportSize.Y
+    
+    for i = #notifications, 1, -1 do
+        local notification = notifications[i]
+        if notification and notification.frame and notification.frame.Parent then
+            local frameHeight = notification.frame.AbsoluteSize.Y
+            local targetY = screenHeight - BASE_Y_OFFSET - baseY - frameHeight
+            
+            local newPosition = UDim2.new(1, -220, 0, targetY)
+            notification.tweenPosition(newPosition)
+            baseY += frameHeight + NOTIFICATION_SPACING
+        else
+            table.remove(notifications, i)
+        end
+    end
+end
+
+function SansHub:Notify(tag, content, duration, buttons, theme, iconId)
+    local isDestroying = false
+    theme = theme or "normal"
+    local colors = self.COLOR_PALETTE[theme] or self.COLOR_PALETTE.normal
+    local hasButtons = buttons and (buttons.yes or buttons.no)
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    
+    local frame = Instance.new("Frame")
+    frame.Name = "NotificationFrame"
+    frame.Size = UDim2.new(0, 200, 0, hasButtons and 80 or 60)
+    frame.Position = UDim2.new(1, -220, 1, 0)
+    frame.BackgroundColor3 = colors.Background
+    frame.BackgroundTransparency = 0.3
+    frame.ClipsDescendants = true
+    frame.Parent = screenGui
+
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Thickness = 1
+    uiStroke.Color = colors.Stroke
+    uiStroke.Transparency = 0.5
+    uiStroke.Parent = frame
+
+    local uiPadding = Instance.new("UIPadding")
+    uiPadding.PaddingLeft = UDim.new(0, 8)
+    uiPadding.PaddingRight = UDim.new(0, 8)
+    uiPadding.PaddingTop = UDim.new(0, 4)
+    uiPadding.PaddingBottom = UDim.new(0, 4)
+    uiPadding.Parent = frame
+
+    local titleContainer = Instance.new("Frame")
+    titleContainer.Size = UDim2.new(1, 0, 0, 20)
+    titleContainer.BackgroundTransparency = 1
+    titleContainer.Parent = frame
+
+    if iconId then
+        local icon = Instance.new("ImageLabel")
+        icon.Size = UDim2.new(0, 15, 0, 15)
+        icon.Image = iconId
+        icon.ImageColor3 = colors.Title
+        icon.Parent = titleContainer
+
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Font = Enum.Font.GothamBlack
+        titleLabel.Text = string.upper(tag)
+        titleLabel.TextColor3 = colors.Title
+        titleLabel.TextSize = 12
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.Size = UDim2.new(1, -20, 1, 0)
+        titleLabel.Position = UDim2.new(0, 20, 0, 0)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Parent = titleContainer
+    else
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Font = Enum.Font.GothamBlack
+        titleLabel.Text = string.upper(tag)
+        titleLabel.TextColor3 = colors.Title
+        titleLabel.TextSize = 12
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.Size = UDim2.new(1, 0, 1, 0)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Parent = titleContainer
+    end
+
+    local separator = Instance.new("Frame")
+    separator.Size = UDim2.new(1, 0, 0, 0.5)
+    separator.Position = UDim2.new(0, 0, 0, 20)
+    separator.BackgroundColor3 = colors.Stroke
+    separator.Parent = frame
+
+    local lineGlow = Instance.new("UIStroke")
+    lineGlow.Color = Color3.new(1, 1, 1)
+    lineGlow.Thickness = 1
+    lineGlow.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.8),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+    lineGlow.Parent = separator
+
+    local contentLabel = Instance.new("TextLabel")
+    contentLabel.Size = UDim2.new(1, 0, 1, hasButtons and -50 or -28)
+    contentLabel.Position = UDim2.new(0, 0, 0, 22)
+    contentLabel.Font = Enum.Font.Gotham
+    contentLabel.Text = content
+    contentLabel.TextColor3 = colors.Content
+    contentLabel.TextSize = 12
+    contentLabel.TextWrapped = true
+    contentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    contentLabel.TextYAlignment = Enum.TextYAlignment.Top
+    contentLabel.BackgroundTransparency = 1
+    contentLabel.Parent = frame
+
+    if hasButtons then
+        local buttonContainer = Instance.new("Frame")
+        buttonContainer.Size = UDim2.new(1, -10, 0, 28)
+        buttonContainer.Position = UDim2.new(0, 5, 1, -32)
+        buttonContainer.BackgroundTransparency = 1
+        buttonContainer.Parent = frame
+        
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.FillDirection = Enum.FillDirection.Horizontal
+        listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+        listLayout.Padding = UDim.new(0, 8)
+        listLayout.Parent = buttonContainer
+
+        local function createButton(text, callback)
+            local button = Instance.new("TextButton")
+            button.Size = UDim2.new(0.45, 0, 0.8, 0)
+            button.BackgroundColor3 = colors.Button.Background
+            button.TextColor3 = colors.Button.Text
+            button.Font = Enum.Font.GothamBold
+            button.TextSize = 11
+            button.Text = string.upper(text)
+            button.AutoButtonColor = false
+            button.ZIndex = 2
+
+            local uiCorner = Instance.new("UICorner")
+            uiCorner.CornerRadius = UDim.new(0, 4)
+            uiCorner.Parent = button
+            
+            local buttonStroke = Instance.new("UIStroke")
+            buttonStroke.Color = colors.Stroke
+            buttonStroke.Thickness = 1
+            buttonStroke.Parent = button
+
+            local function animatePress()
+                TweenService:Create(button, TweenInfo.new(0.1), {
+                    BackgroundColor3 = colors.Button.Highlight,
+                    Size = UDim2.new(0.43, 0, 0.75, 0)
+                }):Play()
+            end
+            
+            local function animateRelease()
+                TweenService:Create(button, TweenInfo.new(0.2), {
+                    BackgroundColor3 = colors.Button.Background,
+                    Size = UDim2.new(0.45, 0, 0.8, 0)
+                }):Play()
+            end
+
+            local pressConn = button.MouseButton1Down:Connect(animatePress)
+            local releaseConn = button.MouseButton1Up:Connect(animateRelease)
+            local leaveConn = button.MouseLeave:Connect(animateRelease)
+            
+            local clickConn = button.MouseButton1Click:Connect(function()
+                if isDestroying then return end
+                isDestroying = true
+                
+                if type(callback) == "function" then
+                    pcall(callback)
+                end
+                
+                if frame and frame.Parent then
+                    frame:Destroy()
+                end
+                
+                for i = #notifications, 1, -1 do
+                    if notifications[i].frame == frame then
+                        table.remove(notifications, i)
+                        break
+                    end
+                end
+                updateNotificationPositions()
+            end)
+
+            button.AncestryChanged:Connect(function()
+                if button.Parent == nil then
+                    pressConn:Disconnect()
+                    releaseConn:Disconnect()
+                    leaveConn:Disconnect()
+                    clickConn:Disconnect()
+                end
+            end)
+
+            if UserInputService.TouchEnabled then
+                button.Size = UDim2.new(0.48, 0, 0.85, 0)
+            end
+            
+            button.Parent = buttonContainer
+            return button
+        end
+
+        if buttons.yes then createButton(buttons.yes.text or "YES", buttons.yes.callback) end
+        if buttons.no then createButton(buttons.no.text or "NO", buttons.no.callback) end
+    end
+
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = UDim2.new(1, 0, 0, 2)
+    progressBar.Position = UDim2.new(0, 0, 1, -2)
+    progressBar.BackgroundColor3 = colors.Progress[1]
+    progressBar.Parent = frame
+    
+    local progressFill = Instance.new("Frame")
+    progressFill.Size = UDim2.new(1, 0, 1, 0)
+    progressFill.BackgroundColor3 = colors.Progress[2]
+    progressFill.Parent = progressBar
+
+    local function tweenPosition(newPos)
+        if frame and frame.Parent then
+            local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Position = newPos})
+            tween:Play()
+        end
+    end
+
+    table.insert(notifications, {
+        frame = frame,
+        tweenPosition = tweenPosition
+    })
+    updateNotificationPositions()
+
+    local startTime = os.clock()
+    local progressConnection
+    local function playDisappearAnimation(immediate)
+        if isDestroying then return end
+        isDestroying = true
+        
+        if not frame or not frame.Parent then
+            isDestroying = false
+            return 
+        end
+        
+        if progressConnection then
+            progressConnection:Disconnect()
+            progressConnection = nil
+        end
+        
+        for i = #notifications, 1, -1 do
+            if notifications[i].frame == frame then
+                table.remove(notifications, i)
+                break
+            end
+        end
+        
+        if immediate then
+            if frame.Parent then
+                frame:Destroy()
+            end
+            updateNotificationPositions()
+            isDestroying = false
+        else
+            local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            local tween = TweenService:Create(frame, tweenInfo, {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(1, -220, 0, frame.Position.Y.Offset - 50)
+            })
+            tween:Play()
+            
+            tween.Completed:Connect(function()
+                if frame and frame.Parent then
+                    frame:Destroy()
+                end
+                updateNotificationPositions()
+                isDestroying = false
+            end)
+        end
+    end
+    
+    progressConnection = RunService.Heartbeat:Connect(function()
+        if isDestroying then return end
+        local elapsed = os.clock() - startTime
+        local progress = 1 - (elapsed / duration)
+        if progressFill and progressFill.Parent then
+            progressFill.Size = UDim2.new(progress, 0, 1, 0)
+        end
+        
+        if elapsed >= duration then
+            playDisappearAnimation()
+        end
+    end)
+
+    frame.BackgroundTransparency = 1
+    TweenService:Create(frame, TweenInfo.new(0.5), {
+        BackgroundTransparency = 0.3
+    }):Play()
+
+    frame.Destroying:Connect(function()
+        playDisappearAnimation(true)
+    end)
+end
+
+-- UI库主窗口
+function SansHub:CreateWindow(title, theme, iconId)
+    theme = theme or "normal"
+    local colors = self.COLOR_PALETTE[theme] or self.COLOR_PALETTE.normal
+    
+    local window = {}
+    window.theme = theme
+    window.colors = colors
+    window.quickActionsEnabled = false
+    window.quickActions = {}
+    window.components = {} -- 存储所有组件以便同步
+    
+    -- 创建主界面
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "SansHubUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 450, 0, 350)
+    mainFrame.Position = UDim2.new(0.5, -225, 0.5, -175)
+    mainFrame.BackgroundColor3 = colors.Background
+    mainFrame.BackgroundTransparency = 0.3
+    mainFrame.ClipsDescendants = true
+    mainFrame.Parent = screenGui
+    
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Thickness = 1
+    uiStroke.Color = colors.Stroke
+    uiStroke.Transparency = 0.5
+    uiStroke.Parent = mainFrame
+    
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(0, 6)
+    uiCorner.Parent = mainFrame
+    
+    -- 标题栏
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    titleBar.BackgroundTransparency = 1
+    titleBar.Parent = mainFrame
+    
+    local titleContainer = Instance.new("Frame")
+    titleContainer.Size = UDim2.new(1, -80, 1, 0)
+    titleContainer.BackgroundTransparency = 1
+    titleContainer.Parent = titleBar
+    
+    if iconId then
+        local icon = Instance.new("ImageLabel")
+        icon.Size = UDim2.new(0, 20, 0, 20)
+        icon.Position = UDim2.new(0, 8, 0.5, -10)
+        icon.Image = iconId
+        icon.ImageColor3 = colors.Title
+        icon.Parent = titleContainer
+        
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Font = Enum.Font.GothamBlack
+        titleLabel.Text = string.upper(title or "SansHub")
+        titleLabel.TextColor3 = colors.Title
+        titleLabel.TextSize = 14
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.Size = UDim2.new(1, -30, 1, 0)
+        titleLabel.Position = UDim2.new(0, 30, 0, 0)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Parent = titleContainer
+    else
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Font = Enum.Font.GothamBlack
+        titleLabel.Text = string.upper(title or "SansHub")
+        titleLabel.TextColor3 = colors.Title
+        titleLabel.TextSize = 14
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.Size = UDim2.new(1, -10, 1, 0)
+        titleLabel.Position = UDim2.new(0, 10, 0, 0)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Parent = titleContainer
+    end
+    
+    -- 控制按钮
+    local buttonContainer = Instance.new("Frame")
+    buttonContainer.Size = UDim2.new(0, 80, 1, 0)
+    buttonContainer.Position = UDim2.new(1, -80, 0, 0)
+    buttonContainer.BackgroundTransparency = 1
+    buttonContainer.Parent = titleBar
+    
+    local buttonLayout = Instance.new("UIListLayout")
+    buttonLayout.FillDirection = Enum.FillDirection.Horizontal
+    buttonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    buttonLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    buttonLayout.Padding = UDim.new(0, 8)
+    buttonLayout.Parent = buttonContainer
+    
+    -- 设置按钮 (齿轮)
+    local settingsButton = Instance.new("ImageButton")
+    settingsButton.Name = "SettingsButton"
+    settingsButton.Size = UDim2.new(0, 20, 0, 20)
+    settingsButton.Image = "rbxassetid://11584558814" -- 齿轮图标
+    settingsButton.ImageColor3 = colors.Title
+    settingsButton.BackgroundTransparency = 1
+    settingsButton.Parent = buttonContainer
+    
+    -- 最小化按钮
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Size = UDim2.new(0, 20, 0, 20)
+    minimizeButton.Text = "-"
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.TextSize = 16
+    minimizeButton.TextColor3 = colors.Title
+    minimizeButton.BackgroundTransparency = 1
+    minimizeButton.Parent = buttonContainer
+    
+    -- 关闭按钮
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 20, 0, 20)
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 16
+    closeButton.TextColor3 = colors.Title
+    closeButton.BackgroundTransparency = 1
+    closeButton.Parent = buttonContainer
+    
+    -- 内容区域
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -10, 1, -40)
+    contentFrame.Position = UDim2.new(0, 5, 0, 35)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = mainFrame
+    
+    -- 左侧导航栏
+    local navFrame = Instance.new("Frame")
+    navFrame.Name = "NavigationFrame"
+    navFrame.Size = UDim2.new(0, 120, 1, 0)
+    navFrame.BackgroundTransparency = 1
+    navFrame.Parent = contentFrame
+    
+    local navList = Instance.new("UIListLayout")
+    navList.FillDirection = Enum.FillDirection.Vertical
+    navList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    navList.VerticalAlignment = Enum.VerticalAlignment.Top
+    navList.Padding = UDim.new(0, 5)
+    navList.Parent = navFrame
+    
+    -- 右侧内容区域
+    local tabContentFrame = Instance.new("Frame")
+    tabContentFrame.Name = "TabContentFrame"
+    tabContentFrame.Size = UDim2.new(1, -125, 1, 0)
+    tabContentFrame.Position = UDim2.new(0, 125, 0, 0)
+    tabContentFrame.BackgroundTransparency = 1
+    tabContentFrame.Parent = contentFrame
+    
+    local tabContentList = Instance.new("UIListLayout")
+    tabContentList.FillDirection = Enum.FillDirection.Vertical
+    tabContentList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    tabContentList.VerticalAlignment = Enum.VerticalAlignment.Top
+    tabContentList.Padding = UDim.new(0, 10)
+    tabContentList.Parent = tabContentFrame
+    
+    -- 设置页面 (隐藏)
+    local settingsFrame = Instance.new("Frame")
+    settingsFrame.Name = "SettingsFrame"
+    settingsFrame.Size = UDim2.new(1, 0, 1, 0)
+    settingsFrame.BackgroundTransparency = 1
+    settingsFrame.Visible = false
+    settingsFrame.Parent = contentFrame
+    
+    local settingsScroll = Instance.new("ScrollingFrame")
+    settingsScroll.Size = UDim2.new(1, 0, 1, 0)
+    settingsScroll.BackgroundTransparency = 1
+    settingsScroll.ScrollBarThickness = 4
+    settingsScroll.ScrollBarImageColor3 = colors.Stroke
+    settingsScroll.Parent = settingsFrame
+    
+    local settingsList = Instance.new("UIListLayout")
+    settingsList.FillDirection = Enum.FillDirection.Vertical
+    settingsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    settingsList.VerticalAlignment = Enum.VerticalAlignment.Top
+    settingsList.Padding = UDim.new(0, 15)
+    settingsList.Parent = settingsScroll
+    
+    settingsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        settingsScroll.CanvasSize = UDim2.new(0, 0, 0, settingsList.AbsoluteContentSize.Y + 20)
+    end)
+    
+    -- 最小化状态
+    local minimizedIcon = Instance.new("ImageButton")
+    minimizedIcon.Name = "MinimizedIcon"
+    minimizedIcon.Size = UDim2.new(0, 40, 0, 40)
+    minimizedIcon.Position = UDim2.new(1, -50, 1, -50)
+    minimizedIcon.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=1208931506&width=420&height=420&format=png" -- QQ用户头像
+    minimizedIcon.BackgroundTransparency = 1
+    minimizedIcon.Visible = false
+    minimizedIcon.Parent = screenGui
+    
+    -- 拖拽功能
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    local function updateInput(input)
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updateInput(input)
+        end
+    end)
+    
+    -- 最小化/恢复功能
+    local isMinimized = false
+    minimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            TweenService:Create(mainFrame, TweenInfo.new(0.3), {
+                Size = UDim2.new(0, 0, 0, 0),
+                Position = UDim2.new(1, -10, 1, -10)
+            }):Play()
+            minimizedIcon.Visible = true
+        else
+            minimizedIcon.Visible = false
+            TweenService:Create(mainFrame, TweenInfo.new(0.3), {
+                Size = UDim2.new(0, 450, 0, 350),
+                Position = UDim2.new(0.5, -225, 0.5, -175)
+            }):Play()
+        end
+    end)
+    
+    minimizedIcon.MouseButton1Click:Connect(function()
+        isMinimized = false
+        minimizedIcon.Visible = false
+        TweenService:Create(mainFrame, TweenInfo.new(0.3), {
+            Size = UDim2.new(0, 450, 0, 350),
+            Position = UDim2.new(0.5, -225, 0.5, -175)
+        }):Play()
+    end)
+    
+    -- 关闭功能
+    closeButton.MouseButton1Click:Connect(function()
+        SansHub:Notify("确认", "确定要关闭SansHub吗?", 10, {
+            yes = {
+                text = "确定",
+                callback = function()
+                    screenGui:Destroy()
+                end
+            },
+            no = {
+                text = "取消",
+                callback = function() end
+            }
+        }, theme, iconId)
+    end)
+    
+    -- 设置按钮功能
+    local isSettingsOpen = false
+    settingsButton.MouseButton1Click:Connect(function()
+        isSettingsOpen = not isSettingsOpen
+        
+        if isSettingsOpen then
+            -- 切换到设置页面
+            navFrame.Visible = false
+            tabContentFrame.Visible = false
+            settingsFrame.Visible = true
+            
+            -- 清除旧设置
+            for _, child in ipairs(settingsScroll:GetChildren()) do
+                if child:IsA("Frame") then
+                    child:Destroy()
+                end
+            end
+            
+            -- 添加快捷方式开关
+            local quickToggleSection = Instance.new("Frame")
+            quickToggleSection.Size = UDim2.new(1, 0, 0, 0)
+            quickToggleSection.BackgroundTransparency = 1
+            quickToggleSection.Parent = settingsScroll
+            
+            local quickToggleList = Instance.new("UIListLayout")
+            quickToggleList.FillDirection = Enum.FillDirection.Vertical
+            quickToggleList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+            quickToggleList.VerticalAlignment = Enum.VerticalAlignment.Top
+            quickToggleList.Padding = UDim.new(0, 10)
+            quickToggleList.Parent = quickToggleSection
+            
+            quickToggleList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                quickToggleSection.Size = UDim2.new(1, 0, 0, quickToggleList.AbsoluteContentSize.Y)
+            end)
+            
+            -- 快捷方式开关
+            local quickToggle = Instance.new("Frame")
+            quickToggle.Size = UDim2.new(1, 0, 0, 20)
+            quickToggle.BackgroundTransparency = 1
+            quickToggle.Parent = quickToggleSection
+            
+            local quickToggleLabel = Instance.new("TextLabel")
+            quickToggleLabel.Size = UDim2.new(1, -30, 1, 0)
+            quickToggleLabel.Text = "启用快捷方式创建"
+            quickToggleLabel.Font = Enum.Font.Gotham
+            quickToggleLabel.TextSize = 12
+            quickToggleLabel.TextColor3 = colors.Content
+            quickToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            quickToggleLabel.BackgroundTransparency = 1
+            quickToggleLabel.Parent = quickToggle
+            
+            local quickToggleButton = Instance.new("TextButton")
+            quickToggleButton.Size = UDim2.new(0, 40, 0, 20)
+            quickToggleButton.Position = UDim2.new(1, -40, 0, 0)
+            quickToggleButton.Text = ""
+            quickToggleButton.AutoButtonColor = false
+            quickToggleButton.BackgroundColor3 = window.quickActionsEnabled and colors.Toggle.On or colors.Toggle.Off
+            quickToggleButton.Parent = quickToggle
+            
+            local uiCorner = Instance.new("UICorner")
+            uiCorner.CornerRadius = UDim.new(0, 10)
+            uiCorner.Parent = quickToggleButton
+            
+            local toggleKnob = Instance.new("Frame")
+            toggleKnob.Size = UDim2.new(0, 16, 0, 16)
+            toggleKnob.Position = window.quickActionsEnabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+            toggleKnob.BackgroundColor3 = colors.Toggle.Knob
+            toggleKnob.Parent = quickToggleButton
+            
+            local knobCorner = Instance.new("UICorner")
+            knobCorner.CornerRadius = UDim.new(0, 8)
+            knobCorner.Parent = toggleKnob
+            
+            quickToggleButton.MouseButton1Click:Connect(function()
+                window.quickActionsEnabled = not window.quickActionsEnabled
+                TweenService:Create(quickToggleButton, TweenInfo.new(0.2), {
+                    BackgroundColor3 = window.quickActionsEnabled and colors.Toggle.On or colors.Toggle.Off
+                }):Play()
+                
+                TweenService:Create(toggleKnob, TweenInfo.new(0.2), {
+                    Position = window.quickActionsEnabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                }):Play()
+                
+                -- 更新所有组件的快捷方式按钮可见性
+                for _, component in pairs(window.components) do
+                    if component.quickActionButton then
+                        component.quickActionButton.Visible = window.quickActionsEnabled
+                    end
+                end
+            end)
+        else
+            -- 返回正常页面
+            navFrame.Visible = true
+            tabContentFrame.Visible = true
+            settingsFrame.Visible = false
+        end
+    end)
+    
+    -- 标签页功能
+    local tabs = {}
+    local currentTab = nil
+    
+    function window:CreateTab(name)
+        local tab = {}
+        tab.name = name
+        tab.id = HttpService:GenerateGUID(false)
+        
+        -- 导航按钮
+        local navButton = Instance.new("TextButton")
+        navButton.Name = tab.id
+        navButton.Size = UDim2.new(1, -10, 0, 30)
+        navButton.Text = string.upper(name)
+        navButton.Font = Enum.Font.GothamBold
+        navButton.TextSize = 12
+        navButton.TextColor3 = colors.Title
+        navButton.BackgroundColor3 = Color3.new(0, 0, 0)
+        navButton.BackgroundTransparency = 0.8
+        navButton.Parent = navFrame
+        
+        local navButtonCorner = Instance.new("UICorner")
+        navButtonCorner.CornerRadius = UDim.new(0, 4)
+        navButtonCorner.Parent = navButton
+        
+        local navButtonStroke = Instance.new("UIStroke")
+        navButtonStroke.Color = colors.Stroke
+        navButtonStroke.Thickness = 1
+        navButtonStroke.Parent = navButton
+        
+        -- 内容框架
+        local tabFrame = Instance.new("ScrollingFrame")
+        tabFrame.Name = tab.id
+        tabFrame.Size = UDim2.new(1, 0, 1, 0)
+        tabFrame.BackgroundTransparency = 1
+        tabFrame.ScrollBarThickness = 3
+        tabFrame.ScrollBarImageColor3 = colors.Stroke
+        tabFrame.Visible = false
+        tabFrame.Parent = tabContentFrame
+        
+        local tabList = Instance.new("UIListLayout")
+        tabList.FillDirection = Enum.FillDirection.Vertical
+        tabList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+        tabList.VerticalAlignment = Enum.VerticalAlignment.Top
+        tabList.Padding = UDim.new(0, 10)
+        tabList.Parent = tabFrame
+        
+        tabList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabList.AbsoluteContentSize.Y + 10)
+        end)
+        
+        -- 选中状态
+        local function selectTab()
+            if currentTab then
+                if currentTab.navButton and currentTab.navButton.Parent then
+                    TweenService:Create(currentTab.navButton, TweenInfo.new(0.2), {
+                        BackgroundColor3 = Color3.new(0, 0, 0),
+                        BackgroundTransparency = 0.8
+                    }):Play()
+                end
+                if currentTab.tabFrame and currentTab.tabFrame.Parent then
+                    currentTab.tabFrame.Visible = false
+                end
+            end
+            
+            currentTab = tab
+            TweenService:Create(navButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = colors.Button.Background,
+                BackgroundTransparency = 0.5
+            }):Play()
+            tabFrame.Visible = true
+        end
+        
+        navButton.MouseButton1Click:Connect(selectTab)
+        
+        -- 如果是第一个标签页，自动选中
+        if #tabs == 0 then
+            selectTab()
+        end
+        
+        -- 组件容器
+        local componentsFrame = Instance.new("Frame")
+        componentsFrame.Name = "Components"
+        componentsFrame.Size = UDim2.new(1, 0, 0, 0)
+        componentsFrame.BackgroundTransparency = 1
+        componentsFrame.Parent = tabFrame
+        
+        local componentsList = Instance.new("UIListLayout")
+        componentsList.FillDirection = Enum.FillDirection.Vertical
+        componentsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+        componentsList.VerticalAlignment = Enum.VerticalAlignment.Top
+        componentsList.Padding = UDim.new(0, 15)
+        componentsList.Parent = componentsFrame
+        
+        componentsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            componentsFrame.Size = UDim2.new(1, 0, 0, componentsList.AbsoluteContentSize.Y)
+        end)
+        
+        -- 保存标签页引用
+        tab.navButton = navButton
+        tab.tabFrame = tabFrame
+        tab.componentsFrame = componentsFrame
+        table.insert(tabs, tab)
+        
+        -- 组件创建方法
+        function tab:CreateSection(title)
+            local section = {}
+            
+            -- 区域框架
+            local sectionFrame = Instance.new("Frame")
+            sectionFrame.Name = "Section"
+            sectionFrame.Size = UDim2.new(1, 0, 0, 0)
+            sectionFrame.BackgroundTransparency = 1
+            sectionFrame.Parent = componentsFrame
+            
+            local sectionList = Instance.new("UIListLayout")
+            sectionList.FillDirection = Enum.FillDirection.Vertical
+            sectionList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+            sectionList.VerticalAlignment = Enum.VerticalAlignment.Top
+            sectionList.Padding = UDim.new(0, 8)
+            sectionList.Parent = sectionFrame
+            
+            sectionList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                sectionFrame.Size = UDim2.new(1, 0, 0, sectionList.AbsoluteContentSize.Y)
+            end)
+            
+            -- 标题
+            if title then
+                local titleLabel = Instance.new("TextLabel")
+                titleLabel.Size = UDim2.new(1, 0, 0, 20)
+                titleLabel.Font = Enum.Font.GothamBold
+                titleLabel.Text = string.upper(title)
+                titleLabel.TextColor3 = colors.Title
+                titleLabel.TextSize = 12
+                titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+                titleLabel.BackgroundTransparency = 1
+                titleLabel.Parent = sectionFrame
+                
+                local separator = Instance.new("Frame")
+                separator.Size = UDim2.new(1, 0, 0, 1)
+                separator.Position = UDim2.new(0, 0, 0, 20)
+                separator.BackgroundColor3 = colors.Stroke
+                separator.BackgroundTransparency = 0.5
+                separator.Parent = sectionFrame
+            end
+            
+            -- 组件容器
+            local elementsFrame = Instance.new("Frame")
+            elementsFrame.Name = "Elements"
+            elementsFrame.Size = UDim2.new(1, 0, 0, 0)
+            elementsFrame.BackgroundTransparency = 1
+            elementsFrame.Parent = sectionFrame
+            
+            local elementsList = Instance.new("UIListLayout")
+            elementsList.FillDirection = Enum.FillDirection.Vertical
+            elementsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+            elementsList.VerticalAlignment = Enum.VerticalAlignment.Top
+            elementsList.Padding = UDim.new(0, 10)
+            elementsList.Parent = elementsFrame
+            
+            elementsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                elementsFrame.Size = UDim2.new(1, 0, 0, elementsList.AbsoluteContentSize.Y)
+            end)
+            
+            -- 组件创建方法
+            function section:CreateButton(text, callback)
+                local buttonId = HttpService:GenerateGUID(false)
+                local button = Instance.new("TextButton")
+                button.Name = buttonId
+                button.Size = UDim2.new(1, 0, 0, 30)
+                button.Text = string.upper(text)
+                button.Font = Enum.Font.GothamBold
+                button.TextSize = 12
+                button.TextColor3 = colors.Button.Text
+                button.BackgroundColor3 = colors.Button.Background
+                button.AutoButtonColor = false
+                button.Parent = elementsFrame
+                
+                local uiCorner = Instance.new("UICorner")
+                uiCorner.CornerRadius = UDim.new(0, 4)
+                uiCorner.Parent = button
+                
+                local buttonStroke = Instance.new("UIStroke")
+                buttonStroke.Color = colors.Stroke
+                buttonStroke.Thickness = 1
+                buttonStroke.Parent = button
+                
+                local function animatePress()
+                    TweenService:Create(button, TweenInfo.new(0.1), {
+                        BackgroundColor3 = colors.Button.Highlight,
+                        Size = UDim2.new(0.98, 0, 0, 28)
+                    }):Play()
+                end
+                
+                local function animateRelease()
+                    TweenService:Create(button, TweenInfo.new(0.2), {
+                        BackgroundColor3 = colors.Button.Background,
+                        Size = UDim2.new(1, 0, 0, 30)
+                    }):Play()
+                end
+                
+                button.MouseButton1Down:Connect(animatePress)
+                button.MouseButton1Up:Connect(animateRelease)
+                button.MouseLeave:Connect(animateRelease)
+                
+                button.MouseButton1Click:Connect(function()
+                    if type(callback) == "function" then
+                        pcall(callback)
+                    end
+                end)
+                
+                -- 添加快捷方式按钮
+                local quickActionButton = Instance.new("TextButton")
+                quickActionButton.Name = "QuickActionButton"
+                quickActionButton.Size = UDim2.new(0, 20, 0, 20)
+                quickActionButton.Position = UDim2.new(1, -25, 0.5, -10)
+                quickActionButton.Text = "+"
+                quickActionButton.Font = Enum.Font.GothamBold
+                quickActionButton.TextSize = 14
+                quickActionButton.TextColor3 = colors.Title
+                quickActionButton.BackgroundTransparency = 1
+                quickActionButton.Visible = window.quickActionsEnabled
+                quickActionButton.Parent = button
+                
+                -- 存储组件信息
+                local componentInfo = {
+                    type = "button",
+                    text = text,
+                    callback = callback,
+                    quickActionButton = quickActionButton,
+                    mainComponent = button
+                }
+                window.components[buttonId] = componentInfo
+                
+                -- 快捷方式创建
+                quickActionButton.MouseButton1Click:Connect(function()
+                    if window.quickActions[buttonId] then
+                        -- 如果已存在快捷方式，则删除
+                        window.quickActions[buttonId]:Destroy()
+                        window.quickActions[buttonId] = nil
+                        quickActionButton.Text = "+"
+                    else
+                        -- 创建快捷方式
+                        local quickActionFrame = Instance.new("Frame")
+                        quickActionFrame.Name = buttonId
+                        quickActionFrame.Size = UDim2.new(0, 120, 0, 40)
+                        quickActionFrame.Position = UDim2.new(0, 100, 0, 100)
+                        quickActionFrame.BackgroundColor3 = colors.Button.Background
+                        quickActionFrame.BackgroundTransparency = 0.3
+                        quickActionFrame.Parent = screenGui
+                        
+                        local uiCorner = Instance.new("UICorner")
+                        uiCorner.CornerRadius = UDim.new(0, 4)
+                        uiCorner.Parent = quickActionFrame
+                        
+                        local uiStroke = Instance.new("UIStroke")
+                        uiStroke.Color = colors.Stroke
+                        uiStroke.Thickness = 1
+                        uiStroke.Parent = quickActionFrame
+                        
+                        local quickButton = Instance.new("TextButton")
+                        quickButton.Size = UDim2.new(1, -10, 1, -10)
+                        quickButton.Position = UDim2.new(0, 5, 0, 5)
+                        quickButton.Text = string.upper(text)
+                        quickButton.Font = Enum.Font.GothamBold
+                        quickButton.TextSize = 10
+                        quickButton.TextColor3 = colors.Button.Text
+                        quickButton.BackgroundTransparency = 1
+                        quickButton.Parent = quickActionFrame
+                        
+                        quickButton.MouseButton1Click:Connect(function()
+                            if type(callback) == "function" then
+                                pcall(callback)
+                            end
+                        end)
+                        
+                        -- 删除按钮
+                        local deleteButton = Instance.new("TextButton")
+                        deleteButton.Size = UDim2.new(0, 15, 0, 15)
+                        deleteButton.Position = UDim2.new(1, -15, 0, 0)
+                        deleteButton.Text = "-"
+                        deleteButton.Font = Enum.Font.GothamBold
+                        deleteButton.TextSize = 12
+                        deleteButton.TextColor3 = colors.Title
+                        deleteButton.BackgroundTransparency = 1
+                        deleteButton.Parent = quickActionFrame
+                        
+                        deleteButton.MouseButton1Click:Connect(function()
+                            quickActionFrame:Destroy()
+                            window.quickActions[buttonId] = nil
+                            quickActionButton.Text = "+"
+                        end)
+                        
+                        -- 拖拽功能
+                        local dragging = false
+                        local dragInput, dragStart, startPos
+                        local holdTime = 0
+                        local isHolding = false
+                        local holdProgress = Instance.new("Frame")
+                        holdProgress.Size = UDim2.new(0, 0, 0, 2)
+                        holdProgress.Position = UDim2.new(0, 0, 1, -2)
+                        holdProgress.BackgroundColor3 = colors.Progress[1]
+                        holdProgress.Parent = quickActionFrame
+                        
+                        local holdProgressFill = Instance.new("Frame")
+                        holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                        holdProgressFill.BackgroundColor3 = colors.Progress[2]
+                        holdProgressFill.Parent = holdProgress
+                        
+                        quickActionFrame.InputBegan:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = true
+                                holdTime = 0
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                                
+                                while isHolding and holdTime < 3 do
+                                    holdTime = holdTime + 0.1
+                                    holdProgressFill.Size = UDim2.new(holdTime / 3, 0, 1, 0)
+                                    wait(0.1)
+                                end
+                                
+                                if isHolding and holdTime >= 3 then
+                                    dragging = true
+                                    dragStart = input.Position
+                                    startPos = quickActionFrame.Position
+                                    
+                                    input.Changed:Connect(function()
+                                        if input.UserInputState == Enum.UserInputState.End then
+                                            dragging = false
+                                            isHolding = false
+                                        end
+                                    end)
+                                else
+                                    isHolding = false
+                                end
+                            end
+                        end)
+                        
+                        quickActionFrame.InputEnded:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = false
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                            end
+                        end)
+                        
+                        quickActionFrame.InputChanged:Connect(function(input)
+                            if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragging then
+                                dragInput = input
+                            end
+                        end)
+                        
+                        UserInputService.InputChanged:Connect(function(input)
+                            if input == dragInput and dragging then
+                                local delta = input.Position - dragStart
+                                quickActionFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                            end
+                        end)
+                        
+                        window.quickActions[buttonId] = quickActionFrame
+                        quickActionButton.Text = "-"
+                    end
+                end)
+                
+                return button
+            end
+            
+            function section:CreateToggle(text, default, callback)
+                local toggleId = HttpService:GenerateGUID(false)
+                local toggle = {}
+                local state = default or false
+                
+                local toggleFrame = Instance.new("Frame")
+                toggleFrame.Name = toggleId
+                toggleFrame.Size = UDim2.new(1, 0, 0, 20)
+                toggleFrame.BackgroundTransparency = 1
+                toggleFrame.Parent = elementsFrame
+                
+                local toggleLabel = Instance.new("TextLabel")
+                toggleLabel.Size = UDim2.new(1, -30, 1, 0)
+                toggleLabel.Text = text
+                toggleLabel.Font = Enum.Font.Gotham
+                toggleLabel.TextSize = 12
+                toggleLabel.TextColor3 = colors.Content
+                toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+                toggleLabel.BackgroundTransparency = 1
+                toggleLabel.Parent = toggleFrame
+                
+                local toggleButton = Instance.new("TextButton")
+                toggleButton.Size = UDim2.new(0, 40, 0, 20)
+                toggleButton.Position = UDim2.new(1, -40, 0, 0)
+                toggleButton.Text = ""
+                toggleButton.AutoButtonColor = false
+                toggleButton.BackgroundColor3 = state and colors.Toggle.On or colors.Toggle.Off
+                toggleButton.Parent = toggleFrame
+                
+                local uiCorner = Instance.new("UICorner")
+                uiCorner.CornerRadius = UDim.new(0, 10)
+                uiCorner.Parent = toggleButton
+                
+                local toggleKnob = Instance.new("Frame")
+                toggleKnob.Size = UDim2.new(0, 16, 0, 16)
+                toggleKnob.Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                toggleKnob.BackgroundColor3 = colors.Toggle.Knob
+                toggleKnob.Parent = toggleButton
+                
+                local knobCorner = Instance.new("UICorner")
+                knobCorner.CornerRadius = UDim.new(0, 8)
+                knobCorner.Parent = toggleKnob
+                
+                local function updateState(newState)
+                    state = newState
+                    TweenService:Create(toggleButton, TweenInfo.new(0.2), {
+                        BackgroundColor3 = state and colors.Toggle.On or colors.Toggle.Off
+                    }):Play()
+                    
+                    TweenService:Create(toggleKnob, TweenInfo.new(0.2), {
+                        Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                    }):Play()
+                    
+                    if type(callback) == "function" then
+                        pcall(callback, state)
+                    end
+                    
+                    -- 更新快捷方式状态
+                    if window.quickActions[toggleId] then
+                        local quickToggle = window.quickActions[toggleId]:FindFirstChild("ToggleButton")
+                        if quickToggle then
+                            quickToggle.BackgroundColor3 = state and colors.Toggle.On or colors.Toggle.Off
+                            quickToggle.Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                        end
+                    end
+                end
+                
+                toggleButton.MouseButton1Click:Connect(function()
+                    updateState(not state)
+                end)
+                
+                -- 添加快捷方式按钮
+                local quickActionButton = Instance.new("TextButton")
+                quickActionButton.Name = "QuickActionButton"
+                quickActionButton.Size = UDim2.new(0, 20, 0, 20)
+                quickActionButton.Position = UDim2.new(1, -65, 0.5, -10)
+                quickActionButton.Text = "+"
+                quickActionButton.Font = Enum.Font.GothamBold
+                quickActionButton.TextSize = 14
+                quickActionButton.TextColor3 = colors.Title
+                quickActionButton.BackgroundTransparency = 1
+                quickActionButton.Visible = window.quickActionsEnabled
+                quickActionButton.Parent = toggleFrame
+                
+                -- 存储组件信息
+                local componentInfo = {
+                    type = "toggle",
+                    text = text,
+                    state = state,
+                    callback = callback,
+                    quickActionButton = quickActionButton,
+                    mainComponent = toggleButton,
+                    updateState = updateState
+                }
+                window.components[toggleId] = componentInfo
+                
+                -- 快捷方式创建
+                quickActionButton.MouseButton1Click:Connect(function()
+                    if window.quickActions[toggleId] then
+                        -- 如果已存在快捷方式，则删除
+                        window.quickActions[toggleId]:Destroy()
+                        window.quickActions[toggleId] = nil
+                        quickActionButton.Text = "+"
+                    else
+                        -- 创建快捷方式
+                        local quickActionFrame = Instance.new("Frame")
+                        quickActionFrame.Name = toggleId
+                        quickActionFrame.Size = UDim2.new(0, 80, 0, 30)
+                        quickActionFrame.Position = UDim2.new(0, 100, 0, 100)
+                        quickActionFrame.BackgroundColor3 = colors.Button.Background
+                        quickActionFrame.BackgroundTransparency = 0.3
+                        quickActionFrame.Parent = screenGui
+                        
+                        local uiCorner = Instance.new("UICorner")
+                        uiCorner.CornerRadius = UDim.new(0, 4)
+                        uiCorner.Parent = quickActionFrame
+                        
+                        local uiStroke = Instance.new("UIStroke")
+                        uiStroke.Color = colors.Stroke
+                        uiStroke.Thickness = 1
+                        uiStroke.Parent = quickActionFrame
+                        
+                        local quickToggleButton = Instance.new("TextButton")
+                        quickToggleButton.Name = "ToggleButton"
+                        quickToggleButton.Size = UDim2.new(0, 40, 0, 20)
+                        quickToggleButton.Position = UDim2.new(0.5, -20, 0.5, -10)
+                        quickToggleButton.Text = ""
+                        quickToggleButton.AutoButtonColor = false
+                        quickToggleButton.BackgroundColor3 = state and colors.Toggle.On or colors.Toggle.Off
+                        quickToggleButton.Parent = quickActionFrame
+                        
+                        local quickToggleCorner = Instance.new("UICorner")
+                        quickToggleCorner.CornerRadius = UDim.new(0, 10)
+                        quickToggleCorner.Parent = quickToggleButton
+                        
+                        local quickToggleKnob = Instance.new("Frame")
+                        quickToggleKnob.Size = UDim2.new(0, 16, 0, 16)
+                        quickToggleKnob.Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                        quickToggleKnob.BackgroundColor3 = colors.Toggle.Knob
+                        quickToggleKnob.Parent = quickToggleButton
+                        
+                        local quickKnobCorner = Instance.new("UICorner")
+                        quickKnobCorner.CornerRadius = UDim.new(0, 8)
+                        quickKnobCorner.Parent = quickToggleKnob
+                        
+                        quickToggleButton.MouseButton1Click:Connect(function()
+                            updateState(not state)
+                        end)
+                        
+                        -- 删除按钮
+                        local deleteButton = Instance.new("TextButton")
+                        deleteButton.Size = UDim2.new(0, 15, 0, 15)
+                        deleteButton.Position = UDim2.new(1, -15, 0, 0)
+                        deleteButton.Text = "-"
+                        deleteButton.Font = Enum.Font.GothamBold
+                        deleteButton.TextSize = 12
+                        deleteButton.TextColor3 = colors.Title
+                        deleteButton.BackgroundTransparency = 1
+                        deleteButton.Parent = quickActionFrame
+                        
+                        deleteButton.MouseButton1Click:Connect(function()
+                            quickActionFrame:Destroy()
+                            window.quickActions[toggleId] = nil
+                            quickActionButton.Text = "+"
+                        end)
+                        
+                        -- 拖拽功能
+                        local dragging = false
+                        local dragInput, dragStart, startPos
+                        local holdTime = 0
+                        local isHolding = false
+                        local holdProgress = Instance.new("Frame")
+                        holdProgress.Size = UDim2.new(0, 0, 0, 2)
+                        holdProgress.Position = UDim2.new(0, 0, 1, -2)
+                        holdProgress.BackgroundColor3 = colors.Progress[1]
+                        holdProgress.Parent = quickActionFrame
+                        
+                        local holdProgressFill = Instance.new("Frame")
+                        holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                        holdProgressFill.BackgroundColor3 = colors.Progress[2]
+                        holdProgressFill.Parent = holdProgress
+                        
+                        quickActionFrame.InputBegan:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = true
+                                holdTime = 0
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                                
+                                while isHolding and holdTime < 3 do
+                                    holdTime = holdTime + 0.1
+                                    holdProgressFill.Size = UDim2.new(holdTime / 3, 0, 1, 0)
+                                    wait(0.1)
+                                end
+                                
+                                if isHolding and holdTime >= 3 then
+                                    dragging = true
+                                    dragStart = input.Position
+                                    startPos = quickActionFrame.Position
+                                    
+                                    input.Changed:Connect(function()
+                                        if input.UserInputState == Enum.UserInputState.End then
+                                            dragging = false
+                                            isHolding = false
+                                        end
+                                    end)
+                                else
+                                    isHolding = false
+                                end
+                            end
+                        end)
+                        
+                        quickActionFrame.InputEnded:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = false
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                            end
+                        end)
+                        
+                        quickActionFrame.InputChanged:Connect(function(input)
+                            if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragging then
+                                dragInput = input
+                            end
+                        end)
+                        
+                        UserInputService.InputChanged:Connect(function(input)
+                            if input == dragInput and dragging then
+                                local delta = input.Position - dragStart
+                                quickActionFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                            end
+                        end)
+                        
+                        window.quickActions[toggleId] = quickActionFrame
+                        quickActionButton.Text = "-"
+                    end
+                end)
+                
+                function toggle:Set(value)
+                    if state ~= value then
+                        updateState(value)
+                    end
+                end
+                
+                function toggle:Get()
+                    return state
+                end
+                
+                return toggle
+            end
+            
+            function section:CreateSlider(text, min, max, default, callback)
+                local sliderId = HttpService:GenerateGUID(false)
+                local slider = {}
+                local value = default or min
+                
+                local sliderFrame = Instance.new("Frame")
+                sliderFrame.Name = sliderId
+                sliderFrame.Size = UDim2.new(1, 0, 0, 40)
+                sliderFrame.BackgroundTransparency = 1
+                sliderFrame.Parent = elementsFrame
+                
+                local sliderLabel = Instance.new("TextLabel")
+                sliderLabel.Size = UDim2.new(1, 0, 0, 15)
+                sliderLabel.Text = text
+                sliderLabel.Font = Enum.Font.Gotham
+                sliderLabel.TextSize = 12
+                sliderLabel.TextColor3 = colors.Content
+                sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+                sliderLabel.BackgroundTransparency = 1
+                sliderLabel.Parent = sliderFrame
+                
+                local valueLabel = Instance.new("TextLabel")
+                valueLabel.Size = UDim2.new(0, 60, 0, 15)
+                valueLabel.Position = UDim2.new(1, -60, 0, 0)
+                valueLabel.Text = string.format("%.2f", value)
+                valueLabel.Font = Enum.Font.Gotham
+                valueLabel.TextSize = 12
+                valueLabel.TextColor3 = colors.Title
+                valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+                valueLabel.BackgroundTransparency = 1
+                valueLabel.Parent = sliderFrame
+                
+                local track = Instance.new("Frame")
+                track.Size = UDim2.new(1, 0, 0, 6)
+                track.Position = UDim2.new(0, 0, 0, 20)
+                track.BackgroundColor3 = colors.Slider.Track
+                track.Parent = sliderFrame
+                
+                local trackCorner = Instance.new("UICorner")
+                trackCorner.CornerRadius = UDim.new(0, 3)
+                trackCorner.Parent = track
+                
+                local fill = Instance.new("Frame")
+                fill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+                fill.BackgroundColor3 = colors.Slider.Fill
+                fill.Parent = track
+                
+                local fillCorner = Instance.new("UICorner")
+                fillCorner.CornerRadius = UDim.new(0, 3)
+                fillCorner.Parent = fill
+                
+                local thumb = Instance.new("Frame")
+                thumb.Size = UDim2.new(0, 12, 0, 12)
+                thumb.Position = UDim2.new(fill.Size.X.Scale, -6, 0.5, -6)
+                thumb.BackgroundColor3 = colors.Slider.Thumb
+                thumb.Parent = track
+                
+                local thumbCorner = Instance.new("UICorner")
+                thumbCorner.CornerRadius = UDim.new(0, 6)
+                thumbCorner.Parent = thumb
+                
+                local function updateValue(newValue)
+                    newValue = math.clamp(newValue, min, max)
+                    if value ~= newValue then
+                        value = newValue
+                        valueLabel.Text = string.format("%.2f", value)
+                        
+                        local relativeX = (value - min) / (max - min)
+                        fill.Size = UDim2.new(relativeX, 0, 1, 0)
+                        thumb.Position = UDim2.new(relativeX, -6, 0.5, -6)
+                        
+                        if type(callback) == "function" then
+                            pcall(callback, value)
+                        end
+                        
+                        -- 更新快捷方式状态
+                        if window.quickActions[sliderId] then
+                            local quickValueLabel = window.quickActions[sliderId]:FindFirstChild("ValueLabel")
+                            if quickValueLabel then
+                                quickValueLabel.Text = string.format("%.2f", value)
+                            end
+                            
+                            local quickFill = window.quickActions[sliderId]:FindFirstChild("Fill")
+                            if quickFill then
+                                quickFill.Size = UDim2.new(relativeX, 0, 1, 0)
+                            end
+                            
+                            local quickThumb = window.quickActions[sliderId]:FindFirstChild("Thumb")
+                            if quickThumb then
+                                quickThumb.Position = UDim2.new(relativeX, -6, 0.5, -6)
+                            end
+                        end
+                    end
+                end
+                
+                local dragging = false
+                
+                local function handleInput(input)
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        local relativeX = (input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
+                        relativeX = math.clamp(relativeX, 0, 1)
+                        updateValue(min + (max - min) * relativeX)
+                    end
+                end
+                
+                track.InputBegan:Connect(handleInput)
+                
+                if UserInputService.TouchEnabled then
+                    track.TouchTap:Connect(handleInput)
+                else
+                    track.InputBegan:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            dragging = true
+                            local relativeX = (input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
+                            relativeX = math.clamp(relativeX, 0, 1)
+                            updateValue(min + (max - min) * relativeX)
+                        end
+                    end)
+                    
+                    track.InputEnded:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            dragging = false
+                        end
+                    end)
+                    
+                    UserInputService.InputChanged:Connect(function(input)
+                        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                            local relativeX = (input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
+                            relativeX = math.clamp(relativeX, 0, 1)
+                            updateValue(min + (max - min) * relativeX)
+                        end
+                    end)
+                end
+                
+                -- 添加快捷方式按钮
+                local quickActionButton = Instance.new("TextButton")
+                quickActionButton.Name = "QuickActionButton"
+                quickActionButton.Size = UDim2.new(0, 20, 0, 20)
+                quickActionButton.Position = UDim2.new(1, -25, 0, 10)
+                quickActionButton.Text = "+"
+                quickActionButton.Font = Enum.Font.GothamBold
+                quickActionButton.TextSize = 14
+                quickActionButton.TextColor3 = colors.Title
+                quickActionButton.BackgroundTransparency = 1
+                quickActionButton.Visible = window.quickActionsEnabled
+                quickActionButton.Parent = sliderFrame
+                
+                -- 存储组件信息
+                local componentInfo = {
+                    type = "slider",
+                    text = text,
+                    min = min,
+                    max = max,
+                    value = value,
+                    callback = callback,
+                    quickActionButton = quickActionButton,
+                    mainComponent = track,
+                    updateValue = updateValue
+                }
+                window.components[sliderId] = componentInfo
+                
+                -- 快捷方式创建
+                quickActionButton.MouseButton1Click:Connect(function()
+                    if window.quickActions[sliderId] then
+                        -- 如果已存在快捷方式，则删除
+                        window.quickActions[sliderId]:Destroy()
+                        window.quickActions[sliderId] = nil
+                        quickActionButton.Text = "+"
+                    else
+                        -- 创建快捷方式
+                        local quickActionFrame = Instance.new("Frame")
+                        quickActionFrame.Name = sliderId
+                        quickActionFrame.Size = UDim2.new(0, 150, 0, 60)
+                        quickActionFrame.Position = UDim2.new(0, 100, 0, 100)
+                        quickActionFrame.BackgroundColor3 = colors.Button.Background
+                        quickActionFrame.BackgroundTransparency = 0.3
+                        quickActionFrame.Parent = screenGui
+                        
+                        local uiCorner = Instance.new("UICorner")
+                        uiCorner.CornerRadius = UDim.new(0, 4)
+                        uiCorner.Parent = quickActionFrame
+                        
+                        local uiStroke = Instance.new("UIStroke")
+                        uiStroke.Color = colors.Stroke
+                        uiStroke.Thickness = 1
+                        uiStroke.Parent = quickActionFrame
+                        
+                        local quickSliderLabel = Instance.new("TextLabel")
+                        quickSliderLabel.Size = UDim2.new(1, -10, 0, 15)
+                        quickSliderLabel.Position = UDim2.new(0, 5, 0, 5)
+                        quickSliderLabel.Text = text
+                        quickSliderLabel.Font = Enum.Font.Gotham
+                        quickSliderLabel.TextSize = 10
+                        quickSliderLabel.TextColor3 = colors.Content
+                        quickSliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        quickSliderLabel.BackgroundTransparency = 1
+                        quickSliderLabel.Parent = quickActionFrame
+                        
+                        local quickValueLabel = Instance.new("TextLabel")
+                        quickValueLabel.Name = "ValueLabel"
+                        quickValueLabel.Size = UDim2.new(0, 60, 0, 15)
+                        quickValueLabel.Position = UDim2.new(1, -65, 0, 5)
+                        quickValueLabel.Text = string.format("%.2f", value)
+                        quickValueLabel.Font = Enum.Font.Gotham
+                        quickValueLabel.TextSize = 10
+                        quickValueLabel.TextColor3 = colors.Title
+                        quickValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+                        quickValueLabel.BackgroundTransparency = 1
+                        quickValueLabel.Parent = quickActionFrame
+                        
+                        local quickTrack = Instance.new("Frame")
+                        quickTrack.Size = UDim2.new(1, -10, 0, 6)
+                        quickTrack.Position = UDim2.new(0, 5, 0, 25)
+                        quickTrack.BackgroundColor3 = colors.Slider.Track
+                        quickTrack.Parent = quickActionFrame
+                        
+                        local quickTrackCorner = Instance.new("UICorner")
+                        quickTrackCorner.CornerRadius = UDim.new(0, 3)
+                        quickTrackCorner.Parent = quickTrack
+                        
+                        local quickFill = Instance.new("Frame")
+                        quickFill.Name = "Fill"
+                        quickFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+                        quickFill.BackgroundColor3 = colors.Slider.Fill
+                        quickFill.Parent = quickTrack
+                        
+                        local quickFillCorner = Instance.new("UICorner")
+                        quickFillCorner.CornerRadius = UDim.new(0, 3)
+                        quickFillCorner.Parent = quickFill
+                        
+                        local quickThumb = Instance.new("Frame")
+                        quickThumb.Name = "Thumb"
+                        quickThumb.Size = UDim2.new(0, 12, 0, 12)
+                        quickThumb.Position = UDim2.new(quickFill.Size.X.Scale, -6, 0.5, -6)
+                        quickThumb.BackgroundColor3 = colors.Slider.Thumb
+                        quickThumb.Parent = quickTrack
+                        
+                        local quickThumbCorner = Instance.new("UICorner")
+                        quickThumbCorner.CornerRadius = UDim.new(0, 6)
+                        quickThumbCorner.Parent = quickThumb
+                        
+                        local function handleQuickInput(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                local relativeX = (input.Position.X - quickTrack.AbsolutePosition.X) / quickTrack.AbsoluteSize.X
+                                relativeX = math.clamp(relativeX, 0, 1)
+                                updateValue(min + (max - min) * relativeX)
+                            end
+                        end
+                        
+                        quickTrack.InputBegan:Connect(handleQuickInput)
+                        
+                        if UserInputService.TouchEnabled then
+                            quickTrack.TouchTap:Connect(handleQuickInput)
+                        else
+                            quickTrack.InputBegan:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                    dragging = true
+                                    local relativeX = (input.Position.X - quickTrack.AbsolutePosition.X) / quickTrack.AbsoluteSize.X
+                                    relativeX = math.clamp(relativeX, 0, 1)
+                                    updateValue(min + (max - min) * relativeX)
+                                end
+                            end)
+                            
+                            quickTrack.InputEnded:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                    dragging = false
+                                end
+                            end)
+                            
+                            UserInputService.InputChanged:Connect(function(input)
+                                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                                    local relativeX = (input.Position.X - quickTrack.AbsolutePosition.X) / quickTrack.AbsoluteSize.X
+                                    relativeX = math.clamp(relativeX, 0, 1)
+                                    updateValue(min + (max - min) * relativeX)
+                                end
+                            end)
+                        end
+                        
+                        -- 删除按钮
+                        local deleteButton = Instance.new("TextButton")
+                        deleteButton.Size = UDim2.new(0, 15, 0, 15)
+                        deleteButton.Position = UDim2.new(1, -15, 0, 0)
+                        deleteButton.Text = "-"
+                        deleteButton.Font = Enum.Font.GothamBold
+                        deleteButton.TextSize = 12
+                        deleteButton.TextColor3 = colors.Title
+                        deleteButton.BackgroundTransparency = 1
+                        deleteButton.Parent = quickActionFrame
+                        
+                        deleteButton.MouseButton1Click:Connect(function()
+                            quickActionFrame:Destroy()
+                            window.quickActions[sliderId] = nil
+                            quickActionButton.Text = "+"
+                        end)
+                        
+                        -- 拖拽功能
+                        local dragging = false
+                        local dragInput, dragStart, startPos
+                        local holdTime = 0
+                        local isHolding = false
+                        local holdProgress = Instance.new("Frame")
+                        holdProgress.Size = UDim2.new(0, 0, 0, 2)
+                        holdProgress.Position = UDim2.new(0, 0, 1, -2)
+                        holdProgress.BackgroundColor3 = colors.Progress[1]
+                        holdProgress.Parent = quickActionFrame
+                        
+                        local holdProgressFill = Instance.new("Frame")
+                        holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                        holdProgressFill.BackgroundColor3 = colors.Progress[2]
+                        holdProgressFill.Parent = holdProgress
+                        
+                        quickActionFrame.InputBegan:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = true
+                                holdTime = 0
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                                
+                                while isHolding and holdTime < 3 do
+                                    holdTime = holdTime + 0.1
+                                    holdProgressFill.Size = UDim2.new(holdTime / 3, 0, 1, 0)
+                                    wait(0.1)
+                                end
+                                
+                                if isHolding and holdTime >= 3 then
+                                    dragging = true
+                                    dragStart = input.Position
+                                    startPos = quickActionFrame.Position
+                                    
+                                    input.Changed:Connect(function()
+                                        if input.UserInputState == Enum.UserInputState.End then
+                                            dragging = false
+                                            isHolding = false
+                                        end
+                                    end)
+                                else
+                                    isHolding = false
+                                end
+                            end
+                        end)
+                        
+                        quickActionFrame.InputEnded:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = false
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                            end
+                        end)
+                        
+                        quickActionFrame.InputChanged:Connect(function(input)
+                            if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragging then
+                                dragInput = input
+                            end
+                        end)
+                        
+                        UserInputService.InputChanged:Connect(function(input)
+                            if input == dragInput and dragging then
+                                local delta = input.Position - dragStart
+                                quickActionFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                            end
+                        end)
+                        
+                        window.quickActions[sliderId] = quickActionFrame
+                        quickActionButton.Text = "-"
+                    end
+                end)
+                
+                function slider:Set(newValue)
+                    updateValue(newValue)
+                end
+                
+                function slider:Get()
+                    return value
+                end
+                
+                return slider
+            end
+            
+            function section:CreateInput(text, placeholder, callback)
+                local inputId = HttpService:GenerateGUID(false)
+                local input = {}
+                
+                local inputFrame = Instance.new("Frame")
+                inputFrame.Name = inputId
+                inputFrame.Size = UDim2.new(1, 0, 0, 40)
+                inputFrame.BackgroundTransparency = 1
+                inputFrame.Parent = elementsFrame
+                
+                local inputLabel = Instance.new("TextLabel")
+                inputLabel.Size = UDim2.new(1, 0, 0, 15)
+                inputLabel.Text = text
+                inputLabel.Font = Enum.Font.Gotham
+                inputLabel.TextSize = 12
+                inputLabel.TextColor3 = colors.Content
+                inputLabel.TextXAlignment = Enum.TextXAlignment.Left
+                inputLabel.BackgroundTransparency = 1
+                inputLabel.Parent = inputFrame
+                
+                local textBox = Instance.new("TextBox")
+                textBox.Size = UDim2.new(1, 0, 0, 25)
+                textBox.Position = UDim2.new(0, 0, 0, 15)
+                textBox.Text = ""
+                textBox.PlaceholderText = placeholder or ""
+                textBox.Font = Enum.Font.Gotham
+                textBox.TextSize = 12
+                textBox.TextColor3 = colors.Input.Text
+                textBox.PlaceholderColor3 = colors.Input.Placeholder
+                textBox.BackgroundColor3 = colors.Input.Background
+                textBox.Parent = inputFrame
+                
+                local textBoxCorner = Instance.new("UICorner")
+                textBoxCorner.CornerRadius = UDim.new(0, 4)
+                textBoxCorner.Parent = textBox
+                
+                local textBoxStroke = Instance.new("UIStroke")
+                textBoxStroke.Color = colors.Input.Stroke
+                textBoxStroke.Thickness = 1
+                textBoxStroke.Parent = textBox
+                
+                textBox.FocusLost:Connect(function(enterPressed)
+                    if enterPressed and type(callback) == "function" then
+                        pcall(callback, textBox.Text)
+                    end
+                end)
+                
+                -- 添加快捷方式按钮
+                local quickActionButton = Instance.new("TextButton")
+                quickActionButton.Name = "QuickActionButton"
+                quickActionButton.Size = UDim2.new(0, 20, 0, 20)
+                quickActionButton.Position = UDim2.new(1, -25, 0, 20)
+                quickActionButton.Text = "+"
+                quickActionButton.Font = Enum.Font.GothamBold
+                quickActionButton.TextSize = 14
+                quickActionButton.TextColor3 = colors.Title
+                quickActionButton.BackgroundTransparency = 1
+                quickActionButton.Visible = window.quickActionsEnabled
+                quickActionButton.Parent = inputFrame
+                
+                -- 存储组件信息
+                local componentInfo = {
+                    type = "input",
+                    text = text,
+                    placeholder = placeholder,
+                    callback = callback,
+                    quickActionButton = quickActionButton,
+                    mainComponent = textBox
+                }
+                window.components[inputId] = componentInfo
+                
+                -- 快捷方式创建
+                quickActionButton.MouseButton1Click:Connect(function()
+                    if window.quickActions[inputId] then
+                        -- 如果已存在快捷方式，则删除
+                        window.quickActions[inputId]:Destroy()
+                        window.quickActions[inputId] = nil
+                        quickActionButton.Text = "+"
+                    else
+                        -- 创建快捷方式
+                        local quickActionFrame = Instance.new("Frame")
+                        quickActionFrame.Name = inputId
+                        quickActionFrame.Size = UDim2.new(0, 150, 0, 60)
+                        quickActionFrame.Position = UDim2.new(0, 100, 0, 100)
+                        quickActionFrame.BackgroundColor3 = colors.Button.Background
+                        quickActionFrame.BackgroundTransparency = 0.3
+                        quickActionFrame.Parent = screenGui
+                        
+                        local uiCorner = Instance.new("UICorner")
+                        uiCorner.CornerRadius = UDim.new(0, 4)
+                        uiCorner.Parent = quickActionFrame
+                        
+                        local uiStroke = Instance.new("UIStroke")
+                        uiStroke.Color = colors.Stroke
+                        uiStroke.Thickness = 1
+                        uiStroke.Parent = quickActionFrame
+                        
+                        local quickInputLabel = Instance.new("TextLabel")
+                        quickInputLabel.Size = UDim2.new(1, -10, 0, 15)
+                        quickInputLabel.Position = UDim2.new(0, 5, 0, 5)
+                        quickInputLabel.Text = text
+                        quickInputLabel.Font = Enum.Font.Gotham
+                        quickInputLabel.TextSize = 10
+                        quickInputLabel.TextColor3 = colors.Content
+                        quickInputLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        quickInputLabel.BackgroundTransparency = 1
+                        quickInputLabel.Parent = quickActionFrame
+                        
+                        local quickTextBox = Instance.new("TextBox")
+                        quickTextBox.Size = UDim2.new(1, -10, 0, 25)
+                        quickTextBox.Position = UDim2.new(0, 5, 0, 25)
+                        quickTextBox.Text = textBox.Text
+                        quickTextBox.PlaceholderText = placeholder or ""
+                        quickTextBox.Font = Enum.Font.Gotham
+                        quickTextBox.TextSize = 12
+                        quickTextBox.TextColor3 = colors.Input.Text
+                        quickTextBox.PlaceholderColor3 = colors.Input.Placeholder
+                        quickTextBox.BackgroundColor3 = colors.Input.Background
+                        quickTextBox.Parent = quickActionFrame
+                        
+                        local quickTextBoxCorner = Instance.new("UICorner")
+                        quickTextBoxCorner.CornerRadius = UDim.new(0, 4)
+                        quickTextBoxCorner.Parent = quickTextBox
+                        
+                        local quickTextBoxStroke = Instance.new("UIStroke")
+                        quickTextBoxStroke.Color = colors.Input.Stroke
+                        quickTextBoxStroke.Thickness = 1
+                        quickTextBoxStroke.Parent = quickTextBox
+                        
+                        quickTextBox.FocusLost:Connect(function(enterPressed)
+                            if enterPressed then
+                                textBox.Text = quickTextBox.Text
+                                if type(callback) == "function" then
+                                    pcall(callback, quickTextBox.Text)
+                                end
+                            end
+                        end)
+                        
+                        textBox:GetPropertyChangedSignal("Text"):Connect(function()
+                            quickTextBox.Text = textBox.Text
+                        end)
+                        
+                        -- 删除按钮
+                        local deleteButton = Instance.new("TextButton")
+                        deleteButton.Size = UDim2.new(0, 15, 0, 15)
+                        deleteButton.Position = UDim2.new(1, -15, 0, 0)
+                        deleteButton.Text = "-"
+                        deleteButton.Font = Enum.Font.GothamBold
+                        deleteButton.TextSize = 12
+                        deleteButton.TextColor3 = colors.Title
+                        deleteButton.BackgroundTransparency = 1
+                        deleteButton.Parent = quickActionFrame
+                        
+                        deleteButton.MouseButton1Click:Connect(function()
+                            quickActionFrame:Destroy()
+                            window.quickActions[inputId] = nil
+                            quickActionButton.Text = "+"
+                        end)
+                        
+                        -- 拖拽功能
+                        local dragging = false
+                        local dragInput, dragStart, startPos
+                        local holdTime = 0
+                        local isHolding = false
+                        local holdProgress = Instance.new("Frame")
+                        holdProgress.Size = UDim2.new(0, 0, 0, 2)
+                        holdProgress.Position = UDim2.new(0, 0, 1, -2)
+                        holdProgress.BackgroundColor3 = colors.Progress[1]
+                        holdProgress.Parent = quickActionFrame
+                        
+                        local holdProgressFill = Instance.new("Frame")
+                        holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                        holdProgressFill.BackgroundColor3 = colors.Progress[2]
+                        holdProgressFill.Parent = holdProgress
+                        
+                        quickActionFrame.InputBegan:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = true
+                                holdTime = 0
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                                
+                                while isHolding and holdTime < 3 do
+                                    holdTime = holdTime + 0.1
+                                    holdProgressFill.Size = UDim2.new(holdTime / 3, 0, 1, 0)
+                                    wait(0.1)
+                                end
+                                
+                                if isHolding and holdTime >= 3 then
+                                    dragging = true
+                                    dragStart = input.Position
+                                    startPos = quickActionFrame.Position
+                                    
+                                    input.Changed:Connect(function()
+                                        if input.UserInputState == Enum.UserInputState.End then
+                                            dragging = false
+                                            isHolding = false
+                                        end
+                                    end)
+                                else
+                                    isHolding = false
+                                end
+                            end
+                        end)
+                        
+                        quickActionFrame.InputEnded:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = false
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                            end
+                        end)
+                        
+                        quickActionFrame.InputChanged:Connect(function(input)
+                            if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragging then
+                                dragInput = input
+                            end
+                        end)
+                        
+                        UserInputService.InputChanged:Connect(function(input)
+                            if input == dragInput and dragging then
+                                local delta = input.Position - dragStart
+                                quickActionFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                            end
+                        end)
+                        
+                        window.quickActions[inputId] = quickActionFrame
+                        quickActionButton.Text = "-"
+                    end
+                end)
+                
+                function input:Set(text)
+                    textBox.Text = text or ""
+                end
+                
+                function input:Get()
+                    return textBox.Text
+                end
+                
+                return input
+            end
+            
+            function section:CreateDropdown(text, options, default, callback)
+                local dropdownId = HttpService:GenerateGUID(false)
+                local dropdown = {}
+                local selected = default or (options and options[1])
+                local isOpen = false
+                
+                local dropdownFrame = Instance.new("Frame")
+                dropdownFrame.Name = dropdownId
+                dropdownFrame.Size = UDim2.new(1, 0, 0, 40)
+                dropdownFrame.BackgroundTransparency = 1
+                dropdownFrame.Parent = elementsFrame
+                
+                local dropdownLabel = Instance.new("TextLabel")
+                dropdownLabel.Size = UDim2.new(1, 0, 0, 15)
+                dropdownLabel.Text = text
+                dropdownLabel.Font = Enum.Font.Gotham
+                dropdownLabel.TextSize = 12
+                dropdownLabel.TextColor3 = colors.Content
+                dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+                dropdownLabel.BackgroundTransparency = 1
+                dropdownLabel.Parent = dropdownFrame
+                
+                local mainButton = Instance.new("TextButton")
+                mainButton.Size = UDim2.new(1, 0, 0, 25)
+                mainButton.Position = UDim2.new(0, 0, 0, 15)
+                mainButton.Text = selected or "选择..."
+                mainButton.Font = Enum.Font.Gotham
+                mainButton.TextSize = 12
+                mainButton.TextColor3 = colors.Dropdown.Text
+                mainButton.BackgroundColor3 = colors.Dropdown.Background
+                mainButton.AutoButtonColor = false
+                mainButton.Parent = dropdownFrame
+                
+                local mainButtonCorner = Instance.new("UICorner")
+                mainButtonCorner.CornerRadius = UDim.new(0, 4)
+                mainButtonCorner.Parent = mainButton
+                
+                local mainButtonStroke = Instance.new("UIStroke")
+                mainButtonStroke.Color = colors.Stroke
+                mainButtonStroke.Thickness = 1
+                mainButtonStroke.Parent = mainButton
+                
+                local arrow = Instance.new("ImageLabel")
+                arrow.Size = UDim2.new(0, 15, 0, 15)
+                arrow.Position = UDim2.new(1, -20, 0.5, -7.5)
+                arrow.Image = "rbxassetid://11584561033" -- 向下箭头图标
+                arrow.ImageColor3 = colors.Title
+                arrow.BackgroundTransparency = 1
+                arrow.Parent = mainButton
+                
+                local optionsFrame = Instance.new("Frame")
+                optionsFrame.Size = UDim2.new(1, 0, 0, 0)
+                optionsFrame.Position = UDim2.new(0, 0, 0, 40)
+                optionsFrame.BackgroundColor3 = colors.Dropdown.Background
+                optionsFrame.ClipsDescendants = true
+                optionsFrame.Visible = false
+                optionsFrame.Parent = dropdownFrame
+                
+                local optionsCorner = Instance.new("UICorner")
+                optionsCorner.CornerRadius = UDim.new(0, 4)
+                optionsCorner.Parent = optionsFrame
+                
+                local optionsStroke = Instance.new("UIStroke")
+                optionsStroke.Color = colors.Stroke
+                optionsStroke.Thickness = 1
+                optionsStroke.Parent = optionsFrame
+                
+                local optionsList = Instance.new("UIListLayout")
+                optionsList.FillDirection = Enum.FillDirection.Vertical
+                optionsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+                optionsList.VerticalAlignment = Enum.VerticalAlignment.Top
+                optionsList.Padding = UDim.new(0, 2)
+                optionsList.Parent = optionsFrame
+                
+                local function toggleDropdown()
+                    isOpen = not isOpen
+                    
+                    if isOpen then
+                        optionsFrame.Visible = true
+                        TweenService:Create(optionsFrame, TweenInfo.new(0.2), {
+                            Size = UDim2.new(1, 0, 0, math.min(#options * 25 + (#options - 1) * 2, 150))
+                        }):Play()
+                        TweenService:Create(arrow, TweenInfo.new(0.2), {
+                            Rotation = 180
+                        }):Play()
+                    else
+                        TweenService:Create(optionsFrame, TweenInfo.new(0.2), {
+                            Size = UDim2.new(1, 0, 0, 0)
+                        }):Play()
+                        TweenService:Create(arrow, TweenInfo.new(0.2), {
+                            Rotation = 0
+                        }):Play()
+                        wait(0.2)
+                        optionsFrame.Visible = false
+                    end
+                end
+                
+                local function selectOption(option)
+                    selected = option
+                    mainButton.Text = option
+                    toggleDropdown()
+                    
+                    if type(callback) == "function" then
+                        pcall(callback, option)
+                    end
+                    
+                    -- 更新快捷方式状态
+                    if window.quickActions[dropdownId] then
+                        local quickMainButton = window.quickActions[dropdownId]:FindFirstChild("MainButton")
+                        if quickMainButton then
+                            quickMainButton.Text = option
+                        end
+                    end
+                end
+                
+                mainButton.MouseButton1Click:Connect(toggleDropdown)
+                
+                -- 创建选项按钮
+                if options and #options > 0 then
+                    for _, option in ipairs(options) do
+                        local optionButton = Instance.new("TextButton")
+                        optionButton.Size = UDim2.new(1, -10, 0, 25)
+                        optionButton.Position = UDim2.new(0, 5, 0, 0)
+                        optionButton.Text = option
+                        optionButton.Font = Enum.Font.Gotham
+                        optionButton.TextSize = 12
+                        optionButton.TextColor3 = colors.Dropdown.Text
+                        optionButton.BackgroundColor3 = colors.Dropdown.Item
+                        optionButton.AutoButtonColor = false
+                        optionButton.Parent = optionsFrame
+                        
+                        local optionCorner = Instance.new("UICorner")
+                        optionCorner.CornerRadius = UDim.new(0, 4)
+                        optionCorner.Parent = optionButton
+                        
+                        optionButton.MouseEnter:Connect(function()
+                            TweenService:Create(optionButton, TweenInfo.new(0.1), {
+                                BackgroundColor3 = colors.Dropdown.Highlight
+                            }):Play()
+                        end)
+                        
+                        optionButton.MouseLeave:Connect(function()
+                            TweenService:Create(optionButton, TweenInfo.new(0.1), {
+                                BackgroundColor3 = colors.Dropdown.Item
+                            }):Play()
+                        end)
+                        
+                        optionButton.MouseButton1Click:Connect(function()
+                            selectOption(option)
+                        end)
+                    end
+                end
+                
+                -- 添加快捷方式按钮
+                local quickActionButton = Instance.new("TextButton")
+                quickActionButton.Name = "QuickActionButton"
+                quickActionButton.Size = UDim2.new(0, 20, 0, 20)
+                quickActionButton.Position = UDim2.new(1, -25, 0, 20)
+                quickActionButton.Text = "+"
+                quickActionButton.Font = Enum.Font.GothamBold
+                quickActionButton.TextSize = 14
+                quickActionButton.TextColor3 = colors.Title
+                quickActionButton.BackgroundTransparency = 1
+                quickActionButton.Visible = window.quickActionsEnabled
+                quickActionButton.Parent = dropdownFrame
+                
+                -- 存储组件信息
+                local componentInfo = {
+                    type = "dropdown",
+                    text = text,
+                    options = options,
+                    selected = selected,
+                    callback = callback,
+                    quickActionButton = quickActionButton,
+                    mainComponent = mainButton,
+                    selectOption = selectOption
+                }
+                window.components[dropdownId] = componentInfo
+                
+                -- 快捷方式创建
+                quickActionButton.MouseButton1Click:Connect(function()
+                    if window.quickActions[dropdownId] then
+                        -- 如果已存在快捷方式，则删除
+                        window.quickActions[dropdownId]:Destroy()
+                        window.quickActions[dropdownId] = nil
+                        quickActionButton.Text = "+"
+                    else
+                        -- 创建快捷方式
+                        local quickActionFrame = Instance.new("Frame")
+                        quickActionFrame.Name = dropdownId
+                        quickActionFrame.Size = UDim2.new(0, 150, 0, 60)
+                        quickActionFrame.Position = UDim2.new(0, 100, 0, 100)
+                        quickActionFrame.BackgroundColor3 = colors.Button.Background
+                        quickActionFrame.BackgroundTransparency = 0.3
+                        quickActionFrame.Parent = screenGui
+                        
+                        local uiCorner = Instance.new("UICorner")
+                        uiCorner.CornerRadius = UDim.new(0, 4)
+                        uiCorner.Parent = quickActionFrame
+                        
+                        local uiStroke = Instance.new("UIStroke")
+                        uiStroke.Color = colors.Stroke
+                        uiStroke.Thickness = 1
+                        uiStroke.Parent = quickActionFrame
+                        
+                        local quickDropdownLabel = Instance.new("TextLabel")
+                        quickDropdownLabel.Size = UDim2.new(1, -10, 0, 15)
+                        quickDropdownLabel.Position = UDim2.new(0, 5, 0, 5)
+                        quickDropdownLabel.Text = text
+                        quickDropdownLabel.Font = Enum.Font.Gotham
+                        quickDropdownLabel.TextSize = 10
+                        quickDropdownLabel.TextColor3 = colors.Content
+                        quickDropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        quickDropdownLabel.BackgroundTransparency = 1
+                        quickDropdownLabel.Parent = quickActionFrame
+                        
+                        local quickMainButton = Instance.new("TextButton")
+                        quickMainButton.Name = "MainButton"
+                        quickMainButton.Size = UDim2.new(1, -10, 0, 25)
+                        quickMainButton.Position = UDim2.new(0, 5, 0, 25)
+                        quickMainButton.Text = selected or "选择..."
+                        quickMainButton.Font = Enum.Font.Gotham
+                        quickMainButton.TextSize = 12
+                        quickMainButton.TextColor3 = colors.Dropdown.Text
+                        quickMainButton.BackgroundColor3 = colors.Dropdown.Background
+                        quickMainButton.AutoButtonColor = false
+                        quickMainButton.Parent = quickActionFrame
+                        
+                        local quickMainButtonCorner = Instance.new("UICorner")
+                        quickMainButtonCorner.CornerRadius = UDim.new(0, 4)
+                        quickMainButtonCorner.Parent = quickMainButton
+                        
+                        local quickMainButtonStroke = Instance.new("UIStroke")
+                        quickMainButtonStroke.Color = colors.Stroke
+                        quickMainButtonStroke.Thickness = 1
+                        quickMainButtonStroke.Parent = quickMainButton
+                        
+                        local quickArrow = Instance.new("ImageLabel")
+                        quickArrow.Size = UDim2.new(0, 15, 0, 15)
+                        quickArrow.Position = UDim2.new(1, -20, 0.5, -7.5)
+                        quickArrow.Image = "rbxassetid://11584561033" -- 向下箭头图标
+                        quickArrow.ImageColor3 = colors.Title
+                        quickArrow.BackgroundTransparency = 1
+                        quickArrow.Parent = quickMainButton
+                        
+                        local quickOptionsFrame = Instance.new("Frame")
+                        quickOptionsFrame.Size = UDim2.new(1, 0, 0, 0)
+                        quickOptionsFrame.Position = UDim2.new(0, 0, 0, 65)
+                        quickOptionsFrame.BackgroundColor3 = colors.Dropdown.Background
+                        quickOptionsFrame.ClipsDescendants = true
+                        quickOptionsFrame.Visible = false
+                        quickOptionsFrame.Parent = quickActionFrame
+                        
+                        local quickOptionsCorner = Instance.new("UICorner")
+                        quickOptionsCorner.CornerRadius = UDim.new(0, 4)
+                        quickOptionsCorner.Parent = quickOptionsFrame
+                        
+                        local quickOptionsStroke = Instance.new("UIStroke")
+                        quickOptionsStroke.Color = colors.Stroke
+                        quickOptionsStroke.Thickness = 1
+                        quickOptionsStroke.Parent = quickOptionsFrame
+                        
+                        local quickOptionsList = Instance.new("UIListLayout")
+                        quickOptionsList.FillDirection = Enum.FillDirection.Vertical
+                        quickOptionsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+                        quickOptionsList.VerticalAlignment = Enum.VerticalAlignment.Top
+                        quickOptionsList.Padding = UDim.new(0, 2)
+                        quickOptionsList.Parent = quickOptionsFrame
+                        
+                        local quickIsOpen = false
+                        
+                        local function quickToggleDropdown()
+                            quickIsOpen = not quickIsOpen
+                            
+                            if quickIsOpen then
+                                quickOptionsFrame.Visible = true
+                                TweenService:Create(quickOptionsFrame, TweenInfo.new(0.2), {
+                                    Size = UDim2.new(1, 0, 0, math.min(#options * 25 + (#options - 1) * 2, 150))
+                                }):Play()
+                                TweenService:Create(quickArrow, TweenInfo.new(0.2), {
+                                    Rotation = 180
+                                }):Play()
+                            else
+                                TweenService:Create(quickOptionsFrame, TweenInfo.new(0.2), {
+                                    Size = UDim2.new(1, 0, 0, 0)
+                                }):Play()
+                                TweenService:Create(quickArrow, TweenInfo.new(0.2), {
+                                    Rotation = 0
+                                }):Play()
+                                wait(0.2)
+                                quickOptionsFrame.Visible = false
+                            end
+                        end
+                        
+                        quickMainButton.MouseButton1Click:Connect(quickToggleDropdown)
+                        
+                        -- 创建选项按钮
+                        if options and #options > 0 then
+                            for _, option in ipairs(options) do
+                                local quickOptionButton = Instance.new("TextButton")
+                                quickOptionButton.Size = UDim2.new(1, -10, 0, 25)
+                                quickOptionButton.Position = UDim2.new(0, 5, 0, 0)
+                                quickOptionButton.Text = option
+                                quickOptionButton.Font = Enum.Font.Gotham
+                                quickOptionButton.TextSize = 12
+                                quickOptionButton.TextColor3 = colors.Dropdown.Text
+                                quickOptionButton.BackgroundColor3 = colors.Dropdown.Item
+                                quickOptionButton.AutoButtonColor = false
+                                quickOptionButton.Parent = quickOptionsFrame
+                                
+                                local quickOptionCorner = Instance.new("UICorner")
+                                quickOptionCorner.CornerRadius = UDim.new(0, 4)
+                                quickOptionCorner.Parent = quickOptionButton
+                                
+                                quickOptionButton.MouseEnter:Connect(function()
+                                    TweenService:Create(quickOptionButton, TweenInfo.new(0.1), {
+                                        BackgroundColor3 = colors.Dropdown.Highlight
+                                    }):Play()
+                                end)
+                                
+                                quickOptionButton.MouseLeave:Connect(function()
+                                    TweenService:Create(quickOptionButton, TweenInfo.new(0.1), {
+                                        BackgroundColor3 = colors.Dropdown.Item
+                                    }):Play()
+                                end)
+                                
+                                quickOptionButton.MouseButton1Click:Connect(function()
+                                    selectOption(option)
+                                    quickMainButton.Text = option
+                                    quickToggleDropdown()
+                                end)
+                            end
+                        end
+                        
+                        -- 删除按钮
+                        local deleteButton = Instance.new("TextButton")
+                        deleteButton.Size = UDim2.new(0, 15, 0, 15)
+                        deleteButton.Position = UDim2.new(1, -15, 0, 0)
+                        deleteButton.Text = "-"
+                        deleteButton.Font = Enum.Font.GothamBold
+                        deleteButton.TextSize = 12
+                        deleteButton.TextColor3 = colors.Title
+                        deleteButton.BackgroundTransparency = 1
+                        deleteButton.Parent = quickActionFrame
+                        
+                        deleteButton.MouseButton1Click:Connect(function()
+                            quickActionFrame:Destroy()
+                            window.quickActions[dropdownId] = nil
+                            quickActionButton.Text = "+"
+                        end)
+                        
+                        -- 拖拽功能
+                        local dragging = false
+                        local dragInput, dragStart, startPos
+                        local holdTime = 0
+                        local isHolding = false
+                        local holdProgress = Instance.new("Frame")
+                        holdProgress.Size = UDim2.new(0, 0, 0, 2)
+                        holdProgress.Position = UDim2.new(0, 0, 1, -2)
+                        holdProgress.BackgroundColor3 = colors.Progress[1]
+                        holdProgress.Parent = quickActionFrame
+                        
+                        local holdProgressFill = Instance.new("Frame")
+                        holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                        holdProgressFill.BackgroundColor3 = colors.Progress[2]
+                        holdProgressFill.Parent = holdProgress
+                        
+                        quickActionFrame.InputBegan:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = true
+                                holdTime = 0
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                                
+                                while isHolding and holdTime < 3 do
+                                    holdTime = holdTime + 0.1
+                                    holdProgressFill.Size = UDim2.new(holdTime / 3, 0, 1, 0)
+                                    wait(0.1)
+                                end
+                                
+                                if isHolding and holdTime >= 3 then
+                                    dragging = true
+                                    dragStart = input.Position
+                                    startPos = quickActionFrame.Position
+                                    
+                                    input.Changed:Connect(function()
+                                        if input.UserInputState == Enum.UserInputState.End then
+                                            dragging = false
+                                            isHolding = false
+                                        end
+                                    end)
+                                else
+                                    isHolding = false
+                                end
+                            end
+                        end)
+                        
+                        quickActionFrame.InputEnded:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = false
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                            end
+                        end)
+                        
+                        quickActionFrame.InputChanged:Connect(function(input)
+                            if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragging then
+                                dragInput = input
+                            end
+                        end)
+                        
+                        UserInputService.InputChanged:Connect(function(input)
+                            if input == dragInput and dragging then
+                                local delta = input.Position - dragStart
+                                quickActionFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                            end
+                        end)
+                        
+                        window.quickActions[dropdownId] = quickActionFrame
+                        quickActionButton.Text = "-"
+                    end
+                end)
+                
+                function dropdown:Set(option)
+                    if table.find(options, option) then
+                        selectOption(option)
+                    end
+                end
+                
+                function dropdown:Get()
+                    return selected
+                end
+                
+                function dropdown:UpdateOptions(newOptions)
+                    options = newOptions or options
+                    
+                    -- 清除旧选项
+                    for _, child in ipairs(optionsFrame:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            child:Destroy()
+                        end
+                    end
+                    
+                    -- 创建新选项
+                    if options and #options > 0 then
+                        for _, option in ipairs(options) do
+                            local optionButton = Instance.new("TextButton")
+                            optionButton.Size = UDim2.new(1, -10, 0, 25)
+                            optionButton.Position = UDim2.new(0, 5, 0, 0)
+                            optionButton.Text = option
+                            optionButton.Font = Enum.Font.Gotham
+                            optionButton.TextSize = 12
+                            optionButton.TextColor3 = colors.Dropdown.Text
+                            optionButton.BackgroundColor3 = colors.Dropdown.Item
+                            optionButton.AutoButtonColor = false
+                            optionButton.Parent = optionsFrame
+                            
+                            local optionCorner = Instance.new("UICorner")
+                            optionCorner.CornerRadius = UDim.new(0, 4)
+                            optionCorner.Parent = optionButton
+                            
+                            optionButton.MouseEnter:Connect(function()
+                                TweenService:Create(optionButton, TweenInfo.new(0.1), {
+                                    BackgroundColor3 = colors.Dropdown.Highlight
+                                }):Play()
+                            end)
+                            
+                            optionButton.MouseLeave:Connect(function()
+                                TweenService:Create(optionButton, TweenInfo.new(0.1), {
+                                    BackgroundColor3 = colors.Dropdown.Item
+                                }):Play()
+                            end)
+                            
+                            optionButton.MouseButton1Click:Connect(function()
+                                selectOption(option)
+                            end)
+                        end
+                    end
+                    
+                    -- 如果当前选项不在新选项中，重置为第一个选项
+                    if not table.find(options, selected) then
+                        selected = options[1]
+                        mainButton.Text = selected or "选择..."
+                    end
+                    
+                    -- 更新快捷方式
+                    if window.quickActions[dropdownId] then
+                        local quickOptionsFrame = window.quickActions[dropdownId]:FindFirstChild("OptionsFrame")
+                        if quickOptionsFrame then
+                            -- 清除旧选项
+                            for _, child in ipairs(quickOptionsFrame:GetChildren()) do
+                                if child:IsA("TextButton") then
+                                    child:Destroy()
+                                end
+                            end
+                            
+                            -- 创建新选项
+                            if options and #options > 0 then
+                                for _, option in ipairs(options) do
+                                    local quickOptionButton = Instance.new("TextButton")
+                                    quickOptionButton.Size = UDim2.new(1, -10, 0, 25)
+                                    quickOptionButton.Position = UDim2.new(0, 5, 0, 0)
+                                    quickOptionButton.Text = option
+                                    quickOptionButton.Font = Enum.Font.Gotham
+                                    quickOptionButton.TextSize = 12
+                                    quickOptionButton.TextColor3 = colors.Dropdown.Text
+                                    quickOptionButton.BackgroundColor3 = colors.Dropdown.Item
+                                    quickOptionButton.AutoButtonColor = false
+                                    quickOptionButton.Parent = quickOptionsFrame
+                                    
+                                    local quickOptionCorner = Instance.new("UICorner")
+                                    quickOptionCorner.CornerRadius = UDim.new(0, 4)
+                                    quickOptionCorner.Parent = quickOptionButton
+                                    
+                                    quickOptionButton.MouseEnter:Connect(function()
+                                        TweenService:Create(quickOptionButton, TweenInfo.new(0.1), {
+                                            BackgroundColor3 = colors.Dropdown.Highlight
+                                        }):Play()
+                                    end)
+                                    
+                                    quickOptionButton.MouseLeave:Connect(function()
+                                        TweenService:Create(quickOptionButton, TweenInfo.new(0.1), {
+                                            BackgroundColor3 = colors.Dropdown.Item
+                                        }):Play()
+                                    end)
+                                    
+                                    quickOptionButton.MouseButton1Click:Connect(function()
+                                        selectOption(option)
+                                        local quickMainButton = window.quickActions[dropdownId]:FindFirstChild("MainButton")
+                                        if quickMainButton then
+                                            quickMainButton.Text = option
+                                        end
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                return dropdown
+            end
+            
+            function section:CreateLabel(text)
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1, 0, 0, 20)
+                label.Text = text
+                label.Font = Enum.Font.Gotham
+                label.TextSize = 12
+                label.TextColor3 = colors.Content
+                label.TextXAlignment = Enum.TextXAlignment.Left
+                label.BackgroundTransparency = 1
+                label.Parent = elementsFrame
+                
+                return label
+            end
+            
+            function section:CreateExpandList(config)
+                local expandListId = HttpService:GenerateGUID(false)
+                local expandList = {}
+                
+                local expandListFrame = Instance.new("Frame")
+                expandListFrame.Name = expandListId
+                expandListFrame.Size = UDim2.new(1, 0, 0, 30) -- 初始高度
+                expandListFrame.BackgroundTransparency = 1
+                expandListFrame.Parent = elementsFrame
+                
+                local container = Instance.new("Frame")
+                container.Size = UDim2.new(1, 0, 1, 0)
+                container.BackgroundColor3 = colors.ExpandList.Background
+                container.Parent = expandListFrame
+                
+                local containerCorner = Instance.new("UICorner")
+                containerCorner.CornerRadius = UDim.new(0, 4)
+                containerCorner.Parent = container
+                
+                local containerStroke = Instance.new("UIStroke")
+                containerStroke.Color = colors.Stroke
+                containerStroke.Thickness = 1
+                containerStroke.Parent = container
+                
+                -- 标题栏
+                local titleBar = Instance.new("Frame")
+                titleBar.Size = UDim2.new(1, 0, 0, 30)
+                titleBar.BackgroundColor3 = colors.ExpandList.Header
+                titleBar.Parent = container
+                
+                local titleBarCorner = Instance.new("UICorner")
+                titleBarCorner.CornerRadius = UDim.new(0, 4)
+                titleBarCorner.Parent = titleBar
+                
+                local titleLabel = Instance.new("TextLabel")
+                titleLabel.Text = config.Title or "Expand List"
+                titleLabel.Font = Enum.Font.GothamSemibold
+                titleLabel.TextSize = 14
+                titleLabel.TextColor3 = colors.Title
+                titleLabel.Size = UDim2.new(0.8, 0, 1, 0)
+                titleLabel.Position = UDim2.new(0, 10, 0, 0)
+                titleLabel.BackgroundTransparency = 1
+                titleLabel.Parent = titleBar
+                
+                local toggleButton = Instance.new("TextButton")
+                toggleButton.Text = "-"
+                toggleButton.Font = Enum.Font.GothamBold
+                toggleButton.TextSize = 16
+                toggleButton.TextColor3 = colors.Title
+                toggleButton.Size = UDim2.new(0.2, 0, 1, 0)
+                toggleButton.Position = UDim2.new(0.8, 0, 0, 0)
+                toggleButton.BackgroundTransparency = 1
+                toggleButton.Parent = titleBar
+                
+                -- 内容区
+                local contentArea = Instance.new("ScrollingFrame")
+                contentArea.Size = UDim2.new(1, 0, 1, -30)
+                contentArea.Position = UDim2.new(0, 0, 0, 30)
+                contentArea.BackgroundTransparency = 1
+                contentArea.ScrollBarThickness = 4
+                contentArea.ScrollBarImageColor3 = colors.Stroke
+                contentArea.AutomaticCanvasSize = Enum.AutomaticSize.Y
+                contentArea.Visible = false
+                contentArea.Parent = container
+                
+                local contentLayout = Instance.new("UIListLayout")
+                contentLayout.FillDirection = Enum.FillDirection.Vertical
+                contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+                contentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+                contentLayout.Padding = UDim.new(0, 10)
+                contentLayout.Parent = contentArea
+                
+                contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                    contentArea.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y)
+                end)
+                
+                -- 搜索框
+                local searchBox = Instance.new("Frame")
+                searchBox.Size = UDim2.new(1, -10, 0, 30)
+                searchBox.Position = UDim2.new(0, 5, 0, 5)
+                searchBox.BackgroundColor3 = colors.Input.Background
+                searchBox.Parent = contentArea
+                
+                local searchBoxCorner = Instance.new("UICorner")
+                searchBoxCorner.CornerRadius = UDim.new(0, 4)
+                searchBoxCorner.Parent = searchBox
+                
+                local searchBoxStroke = Instance.new("UIStroke")
+                searchBoxStroke.Color = colors.Input.Stroke
+                searchBoxStroke.Thickness = 1
+                searchBoxStroke.Parent = searchBox
+                
+                local searchLabel = Instance.new("TextLabel")
+                searchLabel.Text = "搜索"
+                searchLabel.Font = Enum.Font.GothamMedium
+                searchLabel.TextSize = 12
+                searchLabel.TextColor3 = colors.Input.Placeholder
+                searchLabel.Size = UDim2.new(0.2, 0, 1, 0)
+                searchLabel.BackgroundTransparency = 1
+                searchLabel.Parent = searchBox
+                
+                local searchInput = Instance.new("TextBox")
+                searchInput.Size = UDim2.new(0.8, 0, 1, 0)
+                searchInput.Position = UDim2.new(0.2, 0, 0, 0)
+                searchInput.BackgroundTransparency = 1
+                searchInput.TextColor3 = colors.Input.Text
+                searchInput.Font = Enum.Font.GothamMedium
+                searchInput.TextSize = 12
+                searchInput.PlaceholderText = "输入关键词..."
+                searchInput.PlaceholderColor3 = colors.Input.Placeholder
+                searchInput.Parent = searchBox
+                
+                -- 内容容器
+                local itemsContainer = Instance.new("Frame")
+                itemsContainer.Size = UDim2.new(1, -10, 0, 0)
+                itemsContainer.Position = UDim2.new(0, 5, 0, 40)
+                itemsContainer.AutomaticSize = Enum.AutomaticSize.Y
+                itemsContainer.BackgroundTransparency = 1
+                itemsContainer.Parent = contentArea
+                
+                local itemsLayout = Instance.new("UIListLayout")
+                itemsLayout.FillDirection = Enum.FillDirection.Vertical
+                itemsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+                itemsLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+                itemsLayout.Padding = UDim.new(0, 5)
+                itemsLayout.Parent = itemsContainer
+                
+                itemsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                    itemsContainer.Size = UDim2.new(1, -10, 0, itemsLayout.AbsoluteContentSize.Y)
+                end)
+                
+                -- 添加内容
+                for _, item in ipairs(config.Items or {}) do
+                    if item.Type == "Checkbox" or item.Type == "多选" then
+                        -- 复选框
+                        local checkboxFrame = Instance.new("Frame")
+                        checkboxFrame.Size = UDim2.new(1, 0, 0, 25)
+                        checkboxFrame.BackgroundTransparency = 1
+                        checkboxFrame.Parent = itemsContainer
+                        
+                        local checkbox = Instance.new("TextButton")
+                        checkbox.Text = ""
+                        checkbox.Size = UDim2.new(0, 18, 0, 18)
+                        checkbox.Position = UDim2.new(0, 5, 0, 3)
+                        checkbox.BackgroundColor3 = colors.Input.Background
+                        checkbox.Parent = checkboxFrame
+                        
+                        local checkboxCorner = Instance.new("UICorner")
+                        checkboxCorner.CornerRadius = UDim.new(0, 4)
+                        checkboxCorner.Parent = checkbox
+                        
+                        local checkboxLabel = Instance.new("TextLabel")
+                        checkboxLabel.Text = item.Text
+                        checkboxLabel.Font = Enum.Font.GothamMedium
+                        checkboxLabel.TextSize = 12
+                        checkboxLabel.TextColor3 = colors.Content
+                        checkboxLabel.Size = UDim2.new(0.9, -28, 1, 0)
+                        checkboxLabel.Position = UDim2.new(0, 30, 0, 0)
+                        checkboxLabel.BackgroundTransparency = 1
+                        checkboxLabel.Parent = checkboxFrame
+                        
+                        checkbox.MouseButton1Click:Connect(function()
+                            if checkbox.BackgroundColor3 == colors.Input.Background then
+                                checkbox.BackgroundColor3 = colors.Toggle.On
+                                pcall(item.Callback, true)
+                            else
+                                checkbox.BackgroundColor3 = colors.Input.Background
+                                pcall(item.Callback, false)
+                            end
+                        end)
+                    elseif item.Type == "Radio" or item.Type == "单选" then
+                        -- 单选框
+                        local radioFrame = Instance.new("Frame")
+                        radioFrame.Size = UDim2.new(1, 0, 0, 25)
+                        radioFrame.BackgroundTransparency = 1
+                        radioFrame.Parent = itemsContainer
+                        
+                        local radioButton = Instance.new("TextButton")
+                        radioButton.Text = ""
+                        radioButton.Size = UDim2.new(0, 18, 0, 18)
+                        radioButton.Position = UDim2.new(0, 5, 0, 3)
+                        radioButton.BackgroundColor3 = colors.Input.Background
+                        radioButton.Parent = radioFrame
+                        
+                        local radioCorner = Instance.new("UICorner")
+                        radioCorner.CornerRadius = UDim.new(1, 0)
+                        radioCorner.Parent = radioButton
+                        
+                        local radioLabel = Instance.new("TextLabel")
+                        radioLabel.Text = item.Text
+                        radioLabel.Font = Enum.Font.GothamMedium
+                        radioLabel.TextSize = 12
+                        radioLabel.TextColor3 = colors.Content
+                        radioLabel.Size = UDim2.new(0.9, -28, 1, 0)
+                        radioLabel.Position = UDim2.new(0, 30, 0, 0)
+                        radioLabel.BackgroundTransparency = 1
+                        radioLabel.Parent = radioFrame
+                        
+                        radioButton.MouseButton1Click:Connect(function()
+                            for _, radio in ipairs(itemsContainer:GetChildren()) do
+                                if radio:IsA("Frame") then
+                                    for _, child in ipairs(radio:GetChildren()) do
+                                        if child:IsA("TextButton") then
+                                            child.BackgroundColor3 = colors.Input.Background
+                                        end
+                                    end
+                                end
+                            end
+                            radioButton.BackgroundColor3 = colors.Toggle.On
+                            pcall(item.Callback)
+                        end)
+                    elseif item.Type == "Tag" or item.Type == "标签" then
+                        -- 标签
+                        local tagFrame = Instance.new("Frame")
+                        tagFrame.Size = UDim2.new(0.3, 0, 0, 25)
+                        tagFrame.BackgroundColor3 = colors.ExpandList.Item
+                        tagFrame.Parent = itemsContainer
+                        
+                        local tagCorner = Instance.new("UICorner")
+                        tagCorner.CornerRadius = UDim.new(0, 4)
+                        tagCorner.Parent = tagFrame
+                        
+                        local tagLabel = Instance.new("TextLabel")
+                        tagLabel.Text = item.Text
+                        tagLabel.Font = Enum.Font.GothamMedium
+                        tagLabel.TextSize = 12
+                        tagLabel.TextColor3 = colors.Content
+                        tagLabel.Size = UDim2.new(1, -10, 1, 0)
+                        tagLabel.Position = UDim2.new(0, 10, 0, 0)
+                        tagLabel.BackgroundTransparency = 1
+                        tagLabel.Parent = tagFrame
+                    end
+                end
+                
+                -- 搜索功能
+                searchInput.FocusLost:Connect(function()
+                    local searchText = searchInput.Text:lower()
+                    for _, child in ipairs(itemsContainer:GetChildren()) do
+                        if child:IsA("Frame") then
+                            local textLabel = child:FindFirstChildOfClass("TextLabel")
+                            if textLabel then
+                                local text = textLabel.Text:lower()
+                                child.Visible = text:find(searchText) ~= nil
+                            end
+                        end
+                    end
+                end)
+                
+                toggleButton.MouseButton1Click:Connect(function()
+                    if toggleButton.Text == "-" then
+                        toggleButton.Text = "+"
+                        contentArea.Visible = false
+                        TweenService:Create(expandListFrame, TweenInfo.new(0.3), {
+                            Size = UDim2.new(1, 0, 0, 30)
+                        }):Play()
+                    else
+                        toggleButton.Text = "-"
+                        contentArea.Visible = true
+                        TweenService:Create(expandListFrame, TweenInfo.new(0.3), {
+                            Size = UDim2.new(1, 0, 0, 200)
+                        }):Play()
+                    end
+                end)
+                
+                -- 添加快捷方式按钮
+                local quickActionButton = Instance.new("TextButton")
+                quickActionButton.Name = "QuickActionButton"
+                quickActionButton.Size = UDim2.new(0, 20, 0, 20)
+                quickActionButton.Position = UDim2.new(1, -25, 0, 5)
+                quickActionButton.Text = "+"
+                quickActionButton.Font = Enum.Font.GothamBold
+                quickActionButton.TextSize = 14
+                quickActionButton.TextColor3 = colors.Title
+                quickActionButton.BackgroundTransparency = 1
+                quickActionButton.Visible = window.quickActionsEnabled
+                quickActionButton.Parent = expandListFrame
+                
+                -- 存储组件信息
+                local componentInfo = {
+                    type = "expandList",
+                    config = config,
+                    quickActionButton = quickActionButton,
+                    mainComponent = expandListFrame
+                }
+                window.components[expandListId] = componentInfo
+                
+                -- 快捷方式创建
+                quickActionButton.MouseButton1Click:Connect(function()
+                    if window.quickActions[expandListId] then
+                        -- 如果已存在快捷方式，则删除
+                        window.quickActions[expandListId]:Destroy()
+                        window.quickActions[expandListId] = nil
+                        quickActionButton.Text = "+"
+                    else
+                        -- 创建快捷方式
+                        local quickActionFrame = Instance.new("Frame")
+                        quickActionFrame.Name = expandListId
+                        quickActionFrame.Size = UDim2.new(0, 150, 0, 30)
+                        quickActionFrame.Position = UDim2.new(0, 100, 0, 100)
+                        quickActionFrame.BackgroundColor3 = colors.ExpandList.Header
+                        quickActionFrame.Parent = screenGui
+                        
+                        local quickCorner = Instance.new("UICorner")
+                        quickCorner.CornerRadius = UDim.new(0, 4)
+                        quickCorner.Parent = quickActionFrame
+                        
+                        local quickStroke = Instance.new("UIStroke")
+                        quickStroke.Color = colors.Stroke
+                        quickStroke.Thickness = 1
+                        quickStroke.Parent = quickActionFrame
+                        
+                        local quickTitle = Instance.new("TextLabel")
+                        quickTitle.Text = config.Title or "Expand List"
+                        quickTitle.Font = Enum.Font.GothamSemibold
+                        quickTitle.TextSize = 12
+                        quickTitle.TextColor3 = colors.Title
+                        quickTitle.Size = UDim2.new(0.8, 0, 1, 0)
+                        quickTitle.Position = UDim2.new(0, 10, 0, 0)
+                        quickTitle.BackgroundTransparency = 1
+                        quickTitle.Parent = quickActionFrame
+                        
+                        local quickToggle = Instance.new("TextButton")
+                        quickToggle.Text = "+"
+                        quickToggle.Font = Enum.Font.GothamBold
+                        quickToggle.TextSize = 16
+                        quickToggle.TextColor3 = colors.Title
+                        quickToggle.Size = UDim2.new(0.2, 0, 1, 0)
+                        quickToggle.Position = UDim2.new(0.8, 0, 0, 0)
+                        quickToggle.BackgroundTransparency = 1
+                        quickToggle.Parent = quickActionFrame
+                        
+                        -- 删除按钮
+                        local deleteButton = Instance.new("TextButton")
+                        deleteButton.Size = UDim2.new(0, 15, 0, 15)
+                        deleteButton.Position = UDim2.new(1, -15, 0, 0)
+                        deleteButton.Text = "-"
+                        deleteButton.Font = Enum.Font.GothamBold
+                        deleteButton.TextSize = 12
+                        deleteButton.TextColor3 = colors.Title
+                        deleteButton.BackgroundTransparency = 1
+                        deleteButton.Parent = quickActionFrame
+                        
+                        deleteButton.MouseButton1Click:Connect(function()
+                            quickActionFrame:Destroy()
+                            window.quickActions[expandListId] = nil
+                            quickActionButton.Text = "+"
+                        end)
+                        
+                        -- 拖拽功能
+                        local dragging = false
+                        local dragInput, dragStart, startPos
+                        local holdTime = 0
+                        local isHolding = false
+                        local holdProgress = Instance.new("Frame")
+                        holdProgress.Size = UDim2.new(0, 0, 0, 2)
+                        holdProgress.Position = UDim2.new(0, 0, 1, -2)
+                        holdProgress.BackgroundColor3 = colors.Progress[1]
+                        holdProgress.Parent = quickActionFrame
+                        
+                        local holdProgressFill = Instance.new("Frame")
+                        holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                        holdProgressFill.BackgroundColor3 = colors.Progress[2]
+                        holdProgressFill.Parent = holdProgress
+                        
+                        quickActionFrame.InputBegan:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = true
+                                holdTime = 0
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                                
+                                while isHolding and holdTime < 3 do
+                                    holdTime = holdTime + 0.1
+                                    holdProgressFill.Size = UDim2.new(holdTime / 3, 0, 1, 0)
+                                    wait(0.1)
+                                end
+                                
+                                if isHolding and holdTime >= 3 then
+                                    dragging = true
+                                    dragStart = input.Position
+                                    startPos = quickActionFrame.Position
+                                    
+                                    input.Changed:Connect(function()
+                                        if input.UserInputState == Enum.UserInputState.End then
+                                            dragging = false
+                                            isHolding = false
+                                        end
+                                    end)
+                                else
+                                    isHolding = false
+                                end
+                            end
+                        end)
+                        
+                        quickActionFrame.InputEnded:Connect(function(input)
+                            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                                isHolding = false
+                                holdProgressFill.Size = UDim2.new(0, 0, 1, 0)
+                            end
+                        end)
+                        
+                        quickActionFrame.InputChanged:Connect(function(input)
+                            if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragging then
+                                dragInput = input
+                            end
+                        end)
+                        
+                        UserInputService.InputChanged:Connect(function(input)
+                            if input == dragInput and dragging then
+                                local delta = input.Position - dragStart
+                                quickActionFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                            end
+                        end)
+                        
+                        window.quickActions[expandListId] = quickActionFrame
+                        quickActionButton.Text = "-"
+                    end
+                end)
+                
+                return expandList
+            end
+            
+            return section
+        end
+        
+        return tab
+    end
+    
+    return window
+end
+
+return SansHub
